@@ -37,6 +37,9 @@ What has remained missing is an integrated, empirical investigation of how behav
 - **Layer 2: Multi-Benchmark Failure Provenance Audit across Six Runners.** We audit six prominent agent benchmark harnesses: AgentDojo, InjecAgent, Agent Security Bench (ASB), AgentHarm, ToolSandbox, and tau2-bench. Across 2,160 controlled executions spanning seventeen provider fault conditions, native harnesses convert 425 of 700 unresolved non-model faults into completed numeric task failure scores.
 - **The Solution (`evalfault`) and Verification.** We present `evalfault`, an open-source, stage-aware provenance guard layer that decouples provider, harness, and evaluator lifecycles. In our controlled study, `evalfault` eliminates 100% of invalid score inclusions (zero invalid retained) while preserving all clean controls and valid recoveries. We validate the framework on a disjoint 450-case synthetic validation packet and report an exploratory 50-trajectory live pilot.
 
+![Figure 1: Dual-layer measurement integrity in LLM-agent benchmarking](figures/figure_1_study_overview.png)
+*Figure 1: Dual-layer measurement integrity in LLM-agent benchmarking. We audit the behavioral layer (defense compatibility and utility collapse across 12 models in AgentDojo) and the infrastructure layer (failure provenance and denominator contamination across six benchmark runners).*
+
 ---
 
 ## 2. Background and Related Work
@@ -75,6 +78,9 @@ We conducted a static line-by-line audit of AgentDojo 0.1.35 Workspace suite v1.
 
 Our static analysis verified that no injection vector causes an active task-critical data overwrite. However, we identified two qualified near-misses in calendar and email fixtures where injection payloads are written to fields immediately adjacent to target state variables.
 
+![Figure 2: Static injection vector audit](figures/figure_rq1_vector_audit.png)
+*Figure 2: Static injection vector audit across 16 Workspace vectors, mapping target state fixtures and data adjacency.*
+
 ### 3.2 Groq Balanced Panel Evaluation (RQ2)
 To evaluate defense compatibility under high-throughput controlled execution, we constructed a balanced panel of 1,096 planned cells executed on Groq hardware:
 - **Backbones:** `openai/gpt-oss-120b` and `openai/gpt-oss-20b`.
@@ -82,6 +88,9 @@ To evaluate defense compatibility under high-throughput controlled execution, we
 - **Tasks:** 40 Workspace user tasks, executed under benign and attacked conditions.
 
 Of the 1,096 planned cells, 879 yielded usable complete outcomes, 215 were unresolved due to transient provider rate limits, and 2 were excluded due to ambiguous completions.
+
+![Figure 3: Groq balanced panel profiles](figures/figure_2_groq_profiles.png)
+*Figure 3: Groq balanced panel profiles (v5.1). Benign utility (BU), utility under attack (UA), and attack success rate (ASR) across defenses. Tool Filter collapses BU and UA for both GPT-OSS-120B and GPT-OSS-20B.*
 
 **Findings on complete matched pairs:**
 - **GPT-OSS-120B:** Tool Filter reduced targeted ASR from 42.1% to 0.0%. However, Benign Utility (BU) plummeted by **84.6 percentage points** (from 88.5% down to 3.8%). Utility under attack (UA) dropped by 60.5 percentage points.
@@ -102,6 +111,15 @@ To determine whether utility collapse is specific to GPT-OSS models or represent
 
 The cohort generated 1,431 usable complete outcomes from 1,540 planned cells (92.9% coverage).
 
+![Figure 4: OpenRouter cohort trade-off](figures/figure_3_openrouter_tradeoff.png)
+*Figure 4: OpenRouter cohort trade-off (v5.3). Utility loss vs. attack reduction across ten model configurations. Tool Filter reduced utility in 100% of configurations, while significant attack reductions occurred in only three.*
+
+![Figure 5: Confidence intervals for utility and attack differences](figures/figure_5_openrouter_intervals.png)
+*Figure 5: Confidence intervals for utility and attack differences across OpenRouter configurations under Tool Filter.*
+
+![Figure 6: Cross-configuration heatmap](figures/figure_cross_configuration_heatmap.png)
+*Figure 6: Cross-configuration utility and attack success heatmap across evaluated models and defense configurations.*
+
 **Key Findings:**
 1. **Universal Utility Collapse:** Tool Filter reduced legitimate task utility in **10/10 configurations (100%)**.
 2. **Inconsistent Security Benefit:** Statistically supported attack-success reductions appeared in only **3 of the 10 configurations**.
@@ -110,6 +128,9 @@ The cohort generated 1,431 usable complete outcomes from 1,540 planned cells (92
 ### 3.4 Operational Missingness and Denominator Integrity (RQ3)
 In our Groq panel, 19.6% of cells remained unresolved; in OpenRouter, 7.1% remained unresolved. When unresolved API aborts are treated as $0$ over $N_{\text{planned}}$, an infrastructure outage masquerades as a model failure. We enforce explicit planned-denominator bounding:
 $$\text{Lower Bound} = \frac{\sum_{i \in \text{Usable}} S_i}{N_{\text{planned}}}, \quad \text{Upper Bound} = \frac{\sum_{i \in \text{Usable}} S_i + N_{\text{unresolved}}}{N_{\text{planned}}}$$
+
+![Figure 7: Execution coverage and provenance](figures/figure_4_coverage_provenance.png)
+*Figure 7: Execution coverage and provenance across Groq and OpenRouter strata. Distinguishing planned cells, usable outcomes, and unresolved dropouts.*
 
 ---
 

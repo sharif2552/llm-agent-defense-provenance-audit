@@ -86,6 +86,13 @@ We conducted a static line-by-line audit of AgentDojo 0.1.35 Workspace suite v1.
 
 Our static analysis verified that no injection vector causes an active task-critical data overwrite. However, we identified two qualified near-misses in calendar and email fixtures where injection payloads are written to fields immediately adjacent to target state variables. These near-misses confirm the structural separation of the current benchmark while highlighting the fragility of static fixture design.
 
+\begin{figure}[!t]
+\centering
+\includegraphics[width=0.48\textwidth]{figures/figure_rq1_vector_audit.png}
+\caption{Static injection vector audit across 16 Workspace vectors, mapping target state fixtures and data adjacency.}
+\label{fig:rq1-vector-audit}
+\end{figure}
+
 \subsection{Groq Balanced Panel Evaluation (RQ2)}
 
 To evaluate defense compatibility under high-throughput controlled execution, we constructed a balanced panel of 1,096 planned cells executed on Groq hardware:
@@ -97,7 +104,7 @@ To evaluate defense compatibility under high-throughput controlled execution, we
 
 \begin{figure}[!t]
 \centering
-\includegraphics[width=0.48\textwidth]{figures/figure_2_groq_profiles.pdf}
+\includegraphics[width=0.48\textwidth]{figures/figure_2_groq_profiles}
 \caption{Groq balanced panel profiles (v5.1). Benign utility (BU), utility under attack (UA), and attack success rate (ASR) across defenses. Tool Filter collapses BU and UA for both GPT-OSS-120B and GPT-OSS-20B.}
 \label{fig:groq-profiles}
 \end{figure}
@@ -130,7 +137,7 @@ To determine whether utility collapse is specific to GPT-OSS models or represent
 
 \begin{figure}[!t]
 \centering
-\includegraphics[width=0.48\textwidth]{figures/figure_3_openrouter_tradeoff.pdf}
+\includegraphics[width=0.48\textwidth]{figures/figure_3_openrouter_tradeoff}
 \caption{OpenRouter cohort trade-off (v5.3). Utility loss vs. attack reduction across ten model configurations. Tool Filter reduced utility in 100\% of configurations, while significant attack reductions occurred in only three.}
 \label{fig:openrouter-tradeoff}
 \end{figure}
@@ -146,18 +153,25 @@ The cohort generated 1,431 usable complete outcomes from 1,540 planned cells (92
 
 \begin{figure}[!t]
 \centering
-\includegraphics[width=0.48\textwidth]{figures/figure_5_openrouter_intervals.pdf}
+\includegraphics[width=0.48\textwidth]{figures/figure_5_openrouter_intervals}
 \caption{Confidence intervals for utility and attack differences across OpenRouter configurations under Tool Filter.}
 \label{fig:openrouter-intervals}
 \end{figure}
 
 Figure~\ref{fig:openrouter-intervals} illustrates the configuration-level confidence intervals. Across both open and commercial families spanning 20B to 550B parameters, capability-restriction defenses consistently fail the compatibility test.
 
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=0.95\textwidth]{figures/figure_cross_configuration_heatmap.png}
+\caption{Cross-configuration utility and attack success heatmap across evaluated models and defense configurations.}
+\label{fig:cross-config-heatmap}
+\end{figure*}
+
 \subsection{Operational Missingness and Denominator Integrity (RQ3)}
 
 \begin{figure}[!t]
 \centering
-\includegraphics[width=0.48\textwidth]{figures/figure_4_coverage_provenance.pdf}
+\includegraphics[width=0.48\textwidth]{figures/figure_4_coverage_provenance}
 \caption{Execution coverage and provenance across Groq and OpenRouter strata. Distinguishing planned cells, usable outcomes, and unresolved dropouts.}
 \label{fig:coverage-provenance}
 \end{figure}
