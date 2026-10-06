@@ -172,3 +172,11 @@ In an unscripted live pilot of 50 AgentDojo Workspace trajectories against OpenR
 ## 8. Conclusion
 
 Valid evaluation of autonomous LLM agents requires that benchmark scores reflect model capabilities rather than behavioral utility destruction or infrastructure flakiness. Our dual-layer audit proves that capability-restriction defenses like Tool Filter create an illusion of security by collapsing benign utility across 100% of evaluated model configurations, while native benchmark runners across six major suites convert 60.7% of unresolved infrastructure faults into false model failure scores. By combining paired security-utility accounting with the `evalfault` stage-aware provenance guard, the community can eliminate denominator contamination and restore measurement integrity to LLM agent benchmarking.
+
+---
+
+## 9. Data and Software Availability
+
+To facilitate full independent replication and community adoption, the complete replication package—including the IEEEtran manuscript sources, raw attempt-level event ledgers across all 4,970 executions, the `evalfault` observer harness, and the self-contained Level-0 verification script—is publicly available under the MIT license at:  
+**https://github.com/sharif2552/llm-agent-defense-provenance-audit**
+
