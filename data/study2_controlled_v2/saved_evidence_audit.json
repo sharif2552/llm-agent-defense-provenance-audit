@@ -1,0 +1,120 @@
+{
+  "executions": 2160,
+  "pairs": 1080,
+  "failures": [],
+  "totals": {
+    "agentdojo/native": {
+      "executions": 180,
+      "unresolved": 110,
+      "invalid_included": 20,
+      "clean_retained": 10,
+      "recovered_retained": 60,
+      "exception_only_invalid": 10
+    },
+    "agentdojo/guarded": {
+      "executions": 180,
+      "unresolved": 110,
+      "invalid_included": 0,
+      "clean_retained": 10,
+      "recovered_retained": 60,
+      "exception_only_invalid": 10
+    },
+    "agentharm/native": {
+      "executions": 180,
+      "unresolved": 125,
+      "invalid_included": 125,
+      "clean_retained": 10,
+      "recovered_retained": 45,
+      "exception_only_invalid": 30
+    },
+    "agentharm/guarded": {
+      "executions": 180,
+      "unresolved": 125,
+      "invalid_included": 0,
+      "clean_retained": 10,
+      "recovered_retained": 45,
+      "exception_only_invalid": 30
+    },
+    "asb/native": {
+      "executions": 180,
+      "unresolved": 125,
+      "invalid_included": 125,
+      "clean_retained": 10,
+      "recovered_retained": 45,
+      "exception_only_invalid": 30
+    },
+    "asb/guarded": {
+      "executions": 180,
+      "unresolved": 125,
+      "invalid_included": 0,
+      "clean_retained": 10,
+      "recovered_retained": 45,
+      "exception_only_invalid": 30
+    },
+    "injecagent/native": {
+      "executions": 180,
+      "unresolved": 125,
+      "invalid_included": 20,
+      "clean_retained": 10,
+      "recovered_retained": 45,
+      "exception_only_invalid": 20
+    },
+    "injecagent/guarded": {
+      "executions": 180,
+      "unresolved": 125,
+      "invalid_included": 0,
+      "clean_retained": 10,
+      "recovered_retained": 45,
+      "exception_only_invalid": 20
+    },
+    "tau2/native": {
+      "executions": 180,
+      "unresolved": 90,
+      "invalid_included": 10,
+      "clean_retained": 10,
+      "recovered_retained": 80,
+      "exception_only_invalid": 10
+    },
+    "tau2/guarded": {
+      "executions": 180,
+      "unresolved": 90,
+      "invalid_included": 0,
+      "clean_retained": 10,
+      "recovered_retained": 80,
+      "exception_only_invalid": 10
+    },
+    "toolsandbox/native": {
+      "executions": 180,
+      "unresolved": 125,
+      "invalid_included": 125,
+      "clean_retained": 10,
+      "recovered_retained": 45,
+      "exception_only_invalid": 30
+    },
+    "toolsandbox/guarded": {
+      "executions": 180,
+      "unresolved": 125,
+      "invalid_included": 0,
+      "clean_retained": 10,
+      "recovered_retained": 45,
+      "exception_only_invalid": 30
+    }
+  },
+  "uncaught_exception_groups": {
+    "agentdojo/InternalServerError/HTTPStatusError": 40,
+    "agentdojo/APIStatusError/HTTPStatusError": 10,
+    "agentdojo/AuthenticationError/HTTPStatusError": 10,
+    "agentdojo/RateLimitError/HTTPStatusError": 10,
+    "agentdojo/JSONDecodeError/StopIteration": 10,
+    "agentdojo/APIConnectionError/RemoteProtocolError/RemoteProtocolError": 10,
+    "agentdojo/JSONDecodeError": 20,
+    "agentdojo/APITimeoutError/ReadTimeout/ReadTimeout/TimeoutError": 10,
+    "agentdojo/BadRequestError/HTTPStatusError": 20,
+    "agentdojo/IndexError": 20,
+    "agentdojo/NotFoundError/HTTPStatusError": 10,
+    "agentdojo/APITimeoutError/ConnectTimeout": 10
+  },
+  "source_files_checked": 5096,
+  "source_mismatches": [],
+  "scope": "All stored rows; independent plan/accounting implementation; same-machine source verification"
+}

@@ -1,0 +1,13 @@
+cff-version: 1.2.0
+message: "If you use this replication package or empirical ledgers, please cite our IEEE TDSC manuscript."
+title: "Failure Is Not a Score: Auditing Defense Utility Collapse and Infrastructure Provenance in LLM-Agent Benchmarks"
+authors:
+  - family-names: Hossain
+    given-names: Md Sharif
+    affiliation: "Department of Computer Science & Engineering, Rajshahi University of Engineering & Technology (RUET)"
+  - family-names: Mahmud
+    given-names: Faez
+    affiliation: "Department of Computer Science & Engineering, Rajshahi University of Engineering & Technology (RUET)"
+date-released: 2026-10-06
+repository-code: "https://github.com/sharif2552/llm-agent-defense-provenance-audit"
+license: MIT

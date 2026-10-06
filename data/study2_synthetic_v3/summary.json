@@ -1,0 +1,80 @@
+{
+  "by_benchmark_path": {
+    "agentdojo": {
+      "planned": 150,
+      "reference_invalid": 72,
+      "reference_unknown": 24,
+      "reference_valid": 54,
+      "v3_eligible": 54
+    },
+    "tau2": {
+      "planned": 150,
+      "reference_invalid": 72,
+      "reference_unknown": 24,
+      "reference_valid": 54,
+      "v3_eligible": 54
+    },
+    "toolsandbox": {
+      "planned": 150,
+      "reference_invalid": 72,
+      "reference_unknown": 24,
+      "reference_valid": 54,
+      "v3_eligible": 54
+    }
+  },
+  "by_fault_class": {
+    "compatibility": {
+      "planned": 60,
+      "reference_valid": 60,
+      "v3_eligible": 60
+    },
+    "configuration_access": {
+      "planned": 60,
+      "reference_invalid": 36,
+      "reference_unknown": 12,
+      "reference_valid": 12,
+      "v3_eligible": 12
+    },
+    "response_contract": {
+      "planned": 180,
+      "reference_invalid": 108,
+      "reference_unknown": 36,
+      "reference_valid": 36,
+      "v3_eligible": 36
+    },
+    "semantic_out_of_scope": {
+      "planned": 30,
+      "reference_valid": 30,
+      "v3_eligible": 30
+    },
+    "service_transport": {
+      "planned": 120,
+      "reference_invalid": 72,
+      "reference_unknown": 24,
+      "reference_valid": 24,
+      "v3_eligible": 24
+    }
+  },
+  "exception_only": {
+    "false_exclusions": 0,
+    "invalid_score_inclusions": 72
+  },
+  "native": {
+    "false_exclusions": 0,
+    "invalid_score_inclusions": 216
+  },
+  "negative_outcomes_retained": 117,
+  "observer_reference_mismatches": [],
+  "planned": 450,
+  "reference_invalid": 216,
+  "reference_unknown": 72,
+  "reference_valid": 162,
+  "v2_last_call": {
+    "false_exclusions": 0,
+    "invalid_score_inclusions": 180
+  },
+  "v3": {
+    "false_exclusions": 0,
+    "invalid_score_inclusions": 0
+  }
+}

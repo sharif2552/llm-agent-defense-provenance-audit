@@ -1,0 +1,43 @@
+\documentclass[journal]{IEEEtran}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{tabularx}
+\usepackage{url}
+\usepackage{xurl}
+\usepackage{cite}
+\usepackage{amsmath,amssymb}
+\usepackage{hyperref}
+\hypersetup{hidelinks}
+\urlstyle{same}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+
+\title{Failure Is Not a Score: Auditing Defense Utility Collapse and Infrastructure Provenance in LLM-Agent Benchmarks}
+
+\author{Md Sharif Hossain and Faez Mahmud\\[3pt]
+\normalsize Department of Computer Science and Engineering\\
+\normalsize Rajshahi University of Engineering \& Technology (RUET), Rajshahi-6204, Bangladesh\\[2pt]
+\small \texttt{sharifhossain4888@gmail.com} \quad \texttt{faezmahmud376@gmail.com}}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Benchmark scores for tool-using large language model (LLM) agents are presumed to measure capability and safety. However, current evaluation pipelines conflate two distinct sources of measurement distortion: behavioral distortion, where defenses appear effective only by crippling legitimate agent utility, and infrastructure distortion, where unresolved execution faults are silently tallied as model task failures. We present a dual-layer empirical audit of both failure modes across six benchmark execution harnesses and twelve production model backbones. First, a behavioral compatibility audit of AgentDojo 0.1.35 Workspace evaluates sixteen injection vectors, a 1,096-cell balanced Groq panel, and a 1,540-cell OpenRouter cohort across ten models spanning five families (20B to 550B parameters). On complete matched pairs, the widely deployed Tool Filter defense drives targeted attack success to zero, but collapses benign task utility by 84.6 percentage points for GPT-OSS-120B and 57.1 points for GPT-OSS-20B. Across all ten OpenRouter configurations, benign utility loss reproduced in 100\% of models, whereas statistically supported attack reductions appeared in only three. Second, an infrastructure provenance audit across six benchmark runners---AgentDojo, InjecAgent, Agent Security Bench (ASB), AgentHarm, ToolSandbox, and tau2-bench---evaluates 2,160 controlled executions under seventeen provider fault conditions. In native benchmark pipelines without provenance guards, 425 of 700 unresolved non-model faults are erroneously emitted as numeric task failure scores, contaminating leaderboard denominators. To resolve this, we introduce \texttt{evalfault}, an open-source stage-aware provenance guard layer that eliminates 100\% of invalid score inclusions while preserving all clean controls and recovered outcomes. We validate stage-aware accounting against an independent 450-case synthetic validation packet and report an exploratory 50-trajectory live pilot. Our findings establish that valid agent evaluation requires joint security-utility accounting and strict infrastructure failure provenance.
+\end{abstract}
+
+\begin{IEEEkeywords}
+LLM agents, benchmark validity, indirect prompt injection, defense compatibility, failure provenance, fault injection, reproducibility
+\end{IEEEkeywords}
+
+\input{body.tex}
+
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+\end{document}

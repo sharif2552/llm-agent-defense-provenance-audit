@@ -1,0 +1,49 @@
+{
+  "attempted": 50,
+  "by_condition": {
+    "clean": {
+      "attempted": 10,
+      "guarded_eligible": 6,
+      "native_numeric": 6,
+      "task_success": 3
+    },
+    "free_variant_compatibility": {
+      "attempted": 10,
+      "guarded_eligible": 7,
+      "native_numeric": 7,
+      "task_success": 4
+    },
+    "malformed_json_response": {
+      "attempted": 10
+    },
+    "persistent_http_503": {
+      "attempted": 10
+    },
+    "transient_http_503": {
+      "attempted": 10,
+      "guarded_eligible": 6,
+      "native_numeric": 6,
+      "task_success": 3
+    }
+  },
+  "by_model": {
+    "dots-studio/dots-3-note-preview:free": {
+      "attempted": 25,
+      "task_success": 6
+    },
+    "nvidia/nemotron-3-super-120b-a12b:free": {
+      "attempted": 25,
+      "task_success": 4
+    }
+  },
+  "completed": 19,
+  "guarded_false_exclusions": 0,
+  "guarded_invalid_inclusions": 0,
+  "native_invalid_inclusions": 0,
+  "planned": 50,
+  "provider_requests": 129,
+  "reference_invalid": 31,
+  "reference_unknown": 0,
+  "reference_valid": 19,
+  "valid_negative_outcomes_retained": 9
+}
