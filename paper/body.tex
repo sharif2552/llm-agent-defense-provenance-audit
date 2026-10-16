@@ -279,7 +279,7 @@ To determine how LLM agent benchmark runners behave when provider and network in
 \label{tab:benchmark-architectures}
 \footnotesize
 \renewcommand{\arraystretch}{1.15}
-\begin{tabularx}{\textwidth}{@{}l p{0.14\textwidth} p{0.18\textwidth} p{0.16\textwidth} p{0.16\textwidth} Y@{}}
+\begin{tabularx}{\textwidth}{@{}p{0.13\textwidth} p{0.14\textwidth} p{0.18\textwidth} p{0.15\textwidth} p{0.16\textwidth} Y@{}}
 \toprule
 Benchmark Harness & Execution Model & Native Exception Handling & Retry / Timeout Policy & Task Scoring Predicate & Failure Leakage Mechanism \\
 \midrule
@@ -314,7 +314,10 @@ To rigorously quantify denominator contamination, we developed a fault taxonomy 
 
 Each fault condition was evaluated under two temporal persistence modes: \textit{persistent} (fault occurs on all retry attempts) and \textit{fail-once} (fault occurs on initial attempt, subsequent retry succeeds). We evaluated these across 30 fixtures and 36 total conditions ($17 \text{ fault types} \times 2 \text{ persistence modes} + 2 \text{ clean controls}$) in a paired-arm design:
 \begin{equation}
-30 \text{ fixtures} \times 36 \text{ conditions} \times 2 \text{ arms} = 2,160 \text{ clean-process executions}
+\begin{aligned}
+& 30 \text{ fixtures} \times 36 \text{ conditions} \times 2 \text{ arms} \\
+& \quad = 2,160 \text{ clean-process executions}
+\end{aligned}
 \end{equation}
 yielding 1,080 matched pairs comparing the \textbf{Native Arm} (unmodified benchmark runners) against the \textbf{Guarded Arm} (equipped with our provenance observer).
 
