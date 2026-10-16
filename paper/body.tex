@@ -118,7 +118,7 @@ Of the 1,096 planned cells, 879 yielded usable complete outcomes, 215 were unres
 
 \begin{table*}[!t]
 \centering
-\caption{Groq complete-case defense outcomes across 879 usable cells. Each cell reports successes / usable evaluations (percentage).}
+\caption{Groq complete-case defense outcomes across 879 usable cells. Each cell reports successes / all usable evaluations (percentage); matched-pair differences ($\Delta$BU of $-84.6$ pp on 120B and $-57.1$ pp on 20B) are computed over complete task pairs.}
 \label{tab:groq-outcomes}
 \footnotesize
 \setlength{\tabcolsep}{6pt}
@@ -176,7 +176,7 @@ To determine whether utility collapse is specific to open-weight MoE backbones o
 \setlength{\tabcolsep}{5pt}
 \begin{tabular}{@{}llllll@{}}
 \toprule
-ID & Canonical Model Name & Model Family & Parameter Scale (Total / Active) & Architecture & Domain / Design Target \\
+ID & Canonical Model Name$^1$ & Model Family & Parameter Scale (Total / Active) & Architecture & Domain / Design Target \\
 \midrule
 C1 & Cohere North Mini Code & Cohere & Undisclosed / Dense & Dense Transformer & Code-specialized reasoning \\
 D1 & Dots-3 Note Preview & Dots Studio & Undisclosed / Dense & Dense Transformer & Note-taking \& productivity \\
@@ -387,27 +387,30 @@ Algorithm~\ref{alg:evalfault} defines the formal stage-aware evaluation and reco
 \caption{Stage-Aware Provenance Accounting in \texttt{evalfault}}
 \label{alg:evalfault}
 \begin{algorithmic}[1]
-\REQUIRE Attempt stream $\mathcal{A} = \{(e_1, \tau_1), \dots, (e_k, \tau_k)\}$, Task Predicate $\mathcal{P}$, Schema Validator $\mathcal{V}$
-\ENSURE Validated Benchmark Outcome $O \in \{\text{Scored}(s), \text{Quarantined}(\text{reason})\}$
-\STATE Initialize Provider Validity $V_{\text{prov}} \leftarrow \text{True}$, Recovery Flag $R \leftarrow \text{False}$
-\FOR{each attempt $(e_j, \tau_j) \in \mathcal{A}$}
-    \IF{$e_j.\text{status} \neq 200$ \OR $e_j.\text{transport\_error} \neq \emptyset$}
-        \STATE Mark transient failure; $V_{\text{prov}} \leftarrow \text{False}$
-    \ELSIF{$\mathcal{V}(e_j.\text{payload}) == \text{Invalid}$ \OR $e_j.\text{choices} == \emptyset$}
-        \STATE Mark semantic payload defect; $V_{\text{prov}} \leftarrow \text{False}$
-        \COMMENT{Catches 130 non-exception defects}
-    \ELSE
-        \STATE $V_{\text{prov}} \leftarrow \text{True}$
-        \IF{previous attempt failed}
-            \STATE $R \leftarrow \text{True}$ \COMMENT{Valid multi-turn recovery}
+\REQUIRE Required execution stages $\mathcal{S} = \{s_1, \dots, s_m\}$ with retry attempt streams $\mathcal{A}(s_i) = \{(e_{i,1}, \tau_{i,1}), \dots, (e_{i,k_i}, \tau_{i,k_i})\}$, Task Predicate $\mathcal{P}$, Schema Validator $\mathcal{V}$
+\ENSURE Validated Benchmark Outcome $O \in \{\text{Scored}(y), \text{Quarantined}(\text{reason})\}$
+\STATE Initialize Recovery Flag $R \leftarrow \text{False}$
+\FOR{each required stage $s_i \in \mathcal{S}$}
+    \STATE $V_{\text{stage}}(s_i) \leftarrow \text{False}$
+    \FOR{each attempt $(e_{i,j}, \tau_{i,j}) \in \mathcal{A}(s_i)$}
+        \IF{$e_{i,j}.\text{status} \neq 200$ \OR $e_{i,j}.\text{transport\_error} \neq \emptyset$}
+            \STATE Mark transient transport/HTTP failure; $V_{\text{stage}}(s_i) \leftarrow \text{False}$
+        \ELSIF{$\mathcal{V}(e_{i,j}.\text{payload}) == \text{Invalid}$ \OR $e_{i,j}.\text{choices} == \emptyset$}
+            \STATE Mark semantic payload defect; $V_{\text{stage}}(s_i) \leftarrow \text{False}$
+            \COMMENT{Catches 130 non-exception defects}
+        \ELSE
+            \STATE $V_{\text{stage}}(s_i) \leftarrow \text{True}$
+            \IF{$j > 1$}
+                \STATE $R \leftarrow \text{True}$ \COMMENT{Valid retry recovery within stage $s_i$}
+            \ENDIF
         \ENDIF
-    \ENDIF
+    \ENDFOR
 \ENDFOR
-\IF{$V_{\text{prov}} == \text{False}$}
+\IF{$\exists s_i \in \mathcal{S} \text{ such that } V_{\text{stage}}(s_i) == \text{False}$}
     \RETURN $\text{Quarantined}(\text{InfrastructureFault})$ \COMMENT{Exclude from denominator}
 \ELSE
-    \STATE Evaluate Task Predicate $s \leftarrow \mathcal{P}(\text{EnvironmentState})$
-    \RETURN $\text{Scored}(s)$ \COMMENT{Eligible numeric outcome}
+    \STATE Evaluate Task Predicate $y \leftarrow \mathcal{P}(\text{EnvironmentState})$
+    \RETURN $\text{Scored}(y)$ \COMMENT{Eligible numeric outcome}
 \ENDIF
 \end{algorithmic}
 \end{algorithm}

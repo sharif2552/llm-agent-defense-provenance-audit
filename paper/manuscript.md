@@ -8,7 +8,7 @@
 
 ## Abstract
 
-Benchmark scores for tool-using large language model (LLM) agents are widely presumed to reflect intrinsic model capability and robustness. However, current evaluation pipelines conflate two distinct sources of measurement distortion: *behavioral distortion*, where security defenses achieve low attack success only by destroying legitimate agent utility, and *infrastructure distortion*, where unresolved runtime or provider faults are silently recorded as model task failures. We present a dual-layer empirical audit quantifying both distortions across six prominent agent benchmark harnesses and twelve production model configurations (20B to 550B parameters). First, in a behavioral audit across 2,636 planned executions in AgentDojo (2,310 verified completions across Groq and OpenRouter cohorts) comparing capability-restriction (`Tool Filter`) against content-delimiting defenses (`Spotlighting`, `Repeat Prompt`), we show that while `Tool Filter` drives targeted attack success to 0.0% on flagship open-weight backbones, it induces catastrophic benign utility collapse—dropping task completion by 84.6 percentage points on GPT-OSS-120B and 57.1 percentage points on GPT-OSS-20B. Across ten additional multi-family model configurations, `Tool Filter` degrades benign utility in 100% of models while yielding statistically significant attack reduction in only 30%. Second, in a controlled fault-injection audit across six benchmark runners—AgentDojo, InjecAgent, Agent Security Bench (ASB), AgentHarm, ToolSandbox, and $\tau^2$-bench—spanning 2,160 executions under seventeen transport and payload fault conditions, we find that native harnesses silently convert 60.7% (425/700) of unresolved non-model faults into numeric task failure scores. Standard exception-catching wrappers fail to prevent 130 of these silent contaminations due to semantic payload malformations. To resolve this, we introduce `evalfault`, a stage-aware provenance guard that decouples provider, harness, and evaluator failure lifecycles, eliminating 100% of invalid score inclusions while preserving 100% of clean controls and valid multi-turn recoveries across both a 450-case synthetic validation suite and a 50-trajectory live stress pilot.
+Benchmark scores for tool-using large language model (LLM) agents are widely presumed to reflect intrinsic model capability and robustness. However, current evaluation pipelines conflate two distinct sources of measurement distortion: *behavioral distortion*, where security defenses achieve low attack success only by destroying legitimate agent utility, and *infrastructure distortion*, where unresolved runtime or provider faults are silently recorded as model task failures. We present a dual-layer empirical audit quantifying both distortions across six agent benchmark harnesses and twelve production model configurations (20B to 550B parameters). First, across 2,636 planned executions in AgentDojo (2,310 verified completions across Groq and OpenRouter cohorts), we compare capability-restriction (`Tool Filter`) against content-delimiting defenses (`Spotlighting`, `Repeat Prompt`). While `Tool Filter` drives targeted attack success to 0.0% on open-weight backbones, it induces catastrophic benign utility collapse—dropping paired task completion by 84.6 percentage points on GPT-OSS-120B and 57.1 percentage points on GPT-OSS-20B. Across ten additional multi-family models, `Tool Filter` degrades benign utility in 100% of configurations while yielding statistically significant attack reduction in only 30%. Second, in a fault-injection audit across six benchmark runners—AgentDojo, InjecAgent, Agent Security Bench (ASB), AgentHarm, ToolSandbox, and $\tau^2$-bench—spanning 2,160 executions under seventeen fault conditions, native harnesses silently convert 60.7% (425/700) of unresolved non-model faults into numeric task failure scores, with 130 semantic payload malformations bypassing standard exception wrappers. We introduce `evalfault`, a stage-aware provenance guard that eliminates 100% of invalid score inclusions while preserving 100% of clean controls and valid recoveries across a 450-case synthetic suite and a 50-trajectory live stress pilot.
 
 **Keywords:** LLM agents, benchmark validity, indirect prompt injection, defense compatibility, failure provenance, fault injection, reproducibility
 
@@ -99,6 +99,8 @@ We evaluated four defense conditions across all 40 Workspace user tasks. Under b
 
 Of the 1,096 planned cells, 879 yielded usable complete outcomes, 215 were unresolved due to transient provider rate limits, and 2 were excluded due to ambiguous completions.
 
+*Table 2: Groq complete-case defense outcomes across 879 usable cells. Each cell reports successes / all usable evaluations (percentage); matched-pair differences ($\Delta$BU of -84.6 pp on 120B and -57.1 pp on 20B) are computed over complete task pairs.*
+
 | Model Configuration | Defense Condition | Benign Utility (BU) | Utility under Attack (UA) | Attack Success Rate (ASR) |
 | :--- | :--- | ---: | ---: | ---: |
 | **GPT-OSS-120B** | None | 12/13 (92.3%) | 59/86 (68.6%) | 16/86 (18.6%) |
@@ -127,7 +129,7 @@ Why does Tool Filter cause such catastrophic utility collapse? We analyzed trans
 ### 3.3 Multi-Model Cohort Across Ten Production Configurations (RQ2)
 To determine whether utility collapse is specific to open-weight MoE backbones or represents a general systemic pathology of capability-restriction defenses, we evaluated a multi-family cohort across ten production model configurations spanning five distinct families (20B to 550B total parameters).
 
-| ID | Canonical Model Name | Model Family | Parameter Scale (Total / Active) | Architecture | Domain / Design Target |
+| ID | Canonical Model Name¹ | Model Family | Parameter Scale (Total / Active) | Architecture | Domain / Design Target |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | C1 | Cohere North Mini Code | Cohere | Undisclosed / Dense | Dense Transformer | Code-specialized reasoning |
 | D1 | Dots-3 Note Preview | Dots Studio | Undisclosed / Dense | Dense Transformer | Note-taking & productivity |
@@ -140,7 +142,7 @@ To determine whether utility collapse is specific to open-weight MoE backbones o
 | P1 | Laguna-S 2.1 | Poolside | Undisclosed / Dense | Dense Transformer | Code synthesis & tool planning |
 | P2 | Laguna-XS 2.1 | Poolside | Undisclosed / Dense | Compact Dense | Lightweight agentic workflows |
 
-*Note: Evaluated across standard OpenRouter production endpoints: `cohere/north-mini-code`, `dots-studio/dots-3-note-preview`, `minimax/minimax-m2.7`, `minimax/minimax-m3`, `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning`, `nvidia/nemotron-3-super-120b-a12b`, `nvidia/nemotron-3-ultra-550b-a55b`, `nvidia/nemotron-3.5-lightning`, `poolside/laguna-s-2.1`, and `poolside/laguna-xs-2.1`.*
+*¹Exact API routing slugs evaluated across standard OpenRouter production endpoints: `cohere/north-mini-code`, `dots-studio/dots-3-note-preview`, `minimax/minimax-m2.7`, `minimax/minimax-m3`, `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning`, `nvidia/nemotron-3-super-120b-a12b`, `nvidia/nemotron-3-ultra-550b-a55b`, `nvidia/nemotron-3.5-lightning`, `poolside/laguna-s-2.1`, and `poolside/laguna-xs-2.1`.*
 
 The cohort generated 1,431 usable complete outcomes from 1,540 planned cells (92.9% coverage).
 
@@ -225,8 +227,8 @@ Across the 2,160 executions, 700 unresolved non-model faults were delivered to e
 | **$\tau^2$-bench** | 180 | 90 | 10 | 11.1% | 0 | 80 |
 | **Total / Summary** | **1,080** | **700** | **425** | **60.7%** | **0** | **320** |
 
-![Figure 9: Empirical benchmark contamination under injected infrastructure faults](figures/figure_9_contamination_breakdown.png)
-*Figure 9: Empirical benchmark contamination under injected infrastructure faults (2,160 executions). Panel (a) shows contamination rates across six native benchmark runners vs. guarded execution. Panel (b) breaks down contamination across the three fault families, highlighting the 130 invalid inclusions that bypass standard exception handling.*
+![Figure 8: Empirical benchmark contamination under injected infrastructure faults](figures/figure_9_contamination_breakdown.png)
+*Figure 8: Empirical benchmark contamination under injected infrastructure faults (2,160 executions). Panel (a) shows contamination rates across six native benchmark runners vs. guarded execution. Panel (b) breaks down contamination across the three fault families, highlighting the 130 invalid inclusions that bypass standard exception handling.*
 
 **Denominator Contamination Findings:**
 - **Systemic Score Contamination:** Across the fixed matrix of 700 unresolved non-model faults, native benchmark runners emitted completed numeric scores in **425 cases (60.7% contamination rate)**. Infrastructure aborts were silently tallied as model capability failures.
@@ -241,38 +243,41 @@ Across the 2,160 executions, 700 unresolved non-model faults were delivered to e
 ## 5. The `evalfault` Guard and Stage-Aware Accounting
 
 ### 5.1 Guard Architecture and Lifecycle Interception (RQ5)
-To prevent infrastructure and transport failures from corrupting benchmark scores, we introduce `evalfault`, an open-source, non-invasive provenance guard layer. As illustrated in Figure 8, `evalfault` decouples agent execution into three strictly bounded lifecycle stages:
+To prevent infrastructure and transport failures from corrupting benchmark scores, we introduce `evalfault`, an open-source, non-invasive provenance guard layer. As illustrated in Figure 9, `evalfault` decouples agent execution into three strictly bounded lifecycle stages:
 1. **Provider Stage:** Validates network transport, HTTP response status codes, payload schema integrity, and model identity at the client boundary. It ensures that responses with status 200 OK that contain malformed payloads or empty choices are intercepted before reaching the agent logic.
 2. **Harness Stage:** Tracks environment state transitions, tool execution deadlines, and sandbox invariants.
 3. **Evaluator Stage:** Verifies judge availability, deterministic predicate completion, and token budget accounting.
 
-![Figure 8: The evalfault 3-stage provenance guard architecture](figures/figure_8_evalfault_architecture.png)
-*Figure 8: The evalfault 3-stage provenance guard architecture. Decoupling provider, harness, and evaluator lifecycles intercepts transport drops, rate limits, and payload schema malformations before they corrupt benchmark denominators.*
+![Figure 9: The evalfault 3-stage provenance guard architecture](figures/figure_8_evalfault_architecture.png)
+*Figure 9: The evalfault 3-stage provenance guard architecture. Decoupling provider, harness, and evaluator lifecycles intercepts transport drops, rate limits, and payload schema malformations before they corrupt benchmark denominators.*
 
 ```text
 Algorithm 1: Stage-Aware Provenance Accounting in evalfault
-Input:  Attempt stream A = {(e_1, tau_1), ..., (e_k, tau_k)}, Task Predicate P, Schema Validator V
-Output: Validated Benchmark Outcome O in {Scored(s), Quarantined(reason)}
+Input:  Required execution stages S = {s_1, ..., s_m} with retry attempt streams A(s_i) = {(e_{i,1}, tau_{i,1}), ..., (e_{i,k_i}, tau_{i,k_i})}, Task Predicate P, Schema Validator V
+Output: Validated Benchmark Outcome O in {Scored(y), Quarantined(reason)}
 
-1: Initialize Provider Validity V_prov <- True, Recovery Flag R <- False
-2: for each attempt (e_j, tau_j) in A do
-3:     if e_j.status != 200 or e_j.transport_error != None then
-4:         Mark transient failure; V_prov <- False
-5:     else if V(e_j.payload) == Invalid or e_j.choices == empty then
-6:         Mark semantic payload defect; V_prov <- False  [Catches 130 non-exception defects]
-7:     else
-8:         V_prov <- True
-9:         if previous attempt failed then
-10:            R <- True  [Valid multi-turn recovery]
-11:        end if
-12:    end if
-13: end for
-14: if V_prov == False then
-15:    return Quarantined(InfrastructureFault)  [Exclude from denominator]
-16: else
-17:    Evaluate Task Predicate s <- P(EnvironmentState)
-18:    return Scored(s)  [Eligible numeric outcome]
-19: end if
+1: Initialize Recovery Flag R <- False
+2: for each required stage s_i in S do
+3:     V_stage(s_i) <- False
+4:     for each attempt (e_{i,j}, tau_{i,j}) in A(s_i) do
+5:         if e_{i,j}.status != 200 or e_{i,j}.transport_error != None then
+6:             Mark transient transport/HTTP failure; V_stage(s_i) <- False
+7:         else if V(e_{i,j}.payload) == Invalid or e_{i,j}.choices == empty then
+8:             Mark semantic payload defect; V_stage(s_i) <- False  [Catches 130 non-exception defects]
+9:         else
+10:            V_stage(s_i) <- True
+11:            if j > 1 then
+12:                R <- True  [Valid retry recovery within stage s_i]
+13:            end if
+14:        end if
+15:    end for
+16: end for
+17: if exists s_i in S such that V_stage(s_i) == False then
+18:    return Quarantined(InfrastructureFault)  [Exclude from denominator]
+19: else
+20:    Evaluate Task Predicate y <- P(EnvironmentState)
+21:    return Scored(y)  [Eligible numeric outcome]
+22: end if
 ```
 
 ### 5.2 Controlled Interception and the Exception-Only Baseline (RQ5)
