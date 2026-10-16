@@ -22,7 +22,7 @@ Prior literature has noted facets of each concern in isolation. AgentDojo introd
 What has remained missing is an integrated, empirical investigation of how behavioral defense degradation and infrastructure fault propagation jointly compromise agent benchmark validity. In this paper, we bridge this gap through a unified, multi-benchmark empirical audit across two complementary layers:
 
 \begin{itemize}
-    \item \textbf{Layer 1: Defense Compatibility Audit in AgentDojo.} We evaluate the shipped Workspace suite under static vector inspection and dynamic multi-model execution across 2,636 planned executions (2,310 verified completions). We test a 1,096-cell balanced panel (879 usable cells) on open-weight mixture-of-experts models (\texttt{gpt-oss-120b} and \texttt{gpt-oss-20b}) on Groq LPU hardware, followed by a multi-family cohort of 1,540 planned cells (1,431 usable cells) across ten production model configurations spanning five distinct model families (with disclosed scales from 3B active / 30B total up to 550B total parameters). We demonstrate that Tool Filter collapses benign utility by 84.6 percentage points on GPT-OSS-120B and 57.1 points on GPT-OSS-20B, with utility degradation reproducing across 100\% of evaluated multi-family configurations, whereas content-delimiting defenses preserve task utility.
+    \item \textbf{Layer 1: Defense Compatibility Audit in AgentDojo.} We evaluate the shipped Workspace suite under static vector inspection and dynamic multi-model execution across 2,636 planned executions (2,310 verified completions). We test a 1,096-cell balanced panel (879 usable cells) on open-weight mixture-of-experts models (\texttt{gpt-oss-120b} and \texttt{gpt-oss-20b}) on Groq LPU hardware, followed by a multi-family cohort of 1,540 planned cells (1,431 usable cells) across ten production model configurations spanning five distinct model families (with disclosed scales from 20B total / 3B active up to 550B total parameters). We demonstrate that Tool Filter collapses benign utility by 84.6 percentage points on GPT-OSS-120B and 57.1 points on GPT-OSS-20B, with utility degradation reproducing across 100\% of evaluated multi-family configurations, whereas content-delimiting defenses preserve task utility.
     \item \textbf{Layer 2: Multi-Benchmark Failure Provenance Audit across Six Runners.} We audit six prominent agent benchmark harnesses: AgentDojo \cite{debenedetti2024agentdojo}, InjecAgent \cite{zhan2024injecagent}, Agent Security Bench (ASB) \cite{zhang2025asb}, AgentHarm \cite{andriushchenko2025agentharm}, ToolSandbox \cite{lu2024toolsandbox}, and $\tau^2$-bench \cite{barres2025tau2}. Across 2,160 controlled executions spanning seventeen provider fault conditions (1,080 matched pairs), native harnesses convert 425 of 700 unresolved non-model faults into completed numeric task failure scores (60.7\% contamination rate).
     \item \textbf{The Solution (\texttt{evalfault}) and Verification.} We present \texttt{evalfault}, an open-source, stage-aware provenance guard layer that decouples provider, harness, and evaluator lifecycles. In our controlled study, \texttt{evalfault} eliminates 100\% of invalid score inclusions (zero invalid retained) while preserving all 60 clean controls and 320 valid recoveries. We validate the framework on a disjoint 450-case synthetic validation packet (0 false exclusions) and report an exploratory 50-trajectory live pilot under capacity-shedding stress.
 \end{itemize}
@@ -346,7 +346,7 @@ $\boldsymbol{\tau^2}$\textbf{-bench} & 180 & 90 & 10 & 11.1\% & 0 & 80 \\
 
 \begin{figure*}[!t]
 \centering
-\includegraphics[width=0.98\textwidth]{figures/figure_9_contamination_breakdown}
+\includegraphics[width=0.98\textwidth]{figures/figure_8_contamination_breakdown}
 \caption{Empirical benchmark contamination under injected infrastructure faults (2,160 executions). Panel (a) shows contamination rates across six native benchmark runners vs. guarded execution. Panel (b) breaks down contamination across the three fault families, highlighting the 130 invalid inclusions that bypass standard exception handling.}
 \label{fig:contamination-breakdown}
 \end{figure*}
@@ -376,7 +376,7 @@ To prevent infrastructure and transport failures from corrupting benchmark score
 
 \begin{figure*}[!t]
 \centering
-\includegraphics[width=0.95\textwidth]{figures/figure_8_evalfault_architecture}
+\includegraphics[width=0.95\textwidth]{figures/figure_9_evalfault_architecture}
 \caption{The \texttt{evalfault} 3-stage provenance guard architecture. Decoupling provider, harness, and evaluator lifecycles intercepts transport drops, rate limits, and payload schema malformations before they corrupt benchmark denominators.}
 \label{fig:evalfault-architecture}
 \end{figure*}

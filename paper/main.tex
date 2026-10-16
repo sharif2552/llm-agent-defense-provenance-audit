@@ -16,7 +16,8 @@
 \usepackage{hyperref}
 \hypersetup{hidelinks}
 \urlstyle{same}
-\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\renewcommand{\dblfloatpagefraction}{0.85}
+\renewcommand{\dbltopfraction}{0.9}
 
 \title{Failure Is Not a Score: Auditing Defense Utility Collapse and Infrastructure Provenance in LLM-Agent Benchmarks}
 
@@ -26,11 +27,11 @@
 \begin{document}
 \maketitle
 
-\markboth{IEEE Transactions on Dependable and Secure Computing,~Vol.~XX, No.~XX,~Month~2026}%
+\markboth{Submitted to IEEE Transactions on Dependable and Secure Computing}%
 {Hossain and Mahmud: Failure Is Not a Score: Auditing Defense Utility Collapse and Infrastructure Provenance}
 
 \begin{abstract}
-Benchmark scores for tool-using large language model (LLM) agents are widely presumed to reflect intrinsic model capability and robustness. However, current evaluation pipelines conflate two distinct sources of measurement distortion: \textit{behavioral distortion}, where security defenses achieve low attack success only by destroying legitimate agent utility, and \textit{infrastructure distortion}, where unresolved runtime or provider faults are silently recorded as model task failures. We present a dual-layer empirical audit quantifying both distortions across six agent benchmark harnesses and twelve production model configurations (20B to 550B parameters). First, across 2,636 planned executions in AgentDojo (2,310 verified completions across Groq and OpenRouter cohorts), we compare capability-restriction (Tool Filter) against content-delimiting defenses (Spotlighting, Repeat Prompt). While Tool Filter drives targeted attack success to 0.0\% on open-weight backbones, it induces catastrophic benign utility collapse---dropping paired task completion by 84.6 percentage points on GPT-OSS-120B and 57.1 percentage points on GPT-OSS-20B. Across ten additional multi-family models, Tool Filter degrades benign utility in 100\% of configurations while yielding statistically significant attack reduction in only 30\%. Second, in a fault-injection audit across six benchmark runners---AgentDojo, InjecAgent, Agent Security Bench (ASB), AgentHarm, ToolSandbox, and $\tau^2$-bench---spanning 2,160 executions under seventeen fault conditions, native harnesses silently convert 60.7\% (425/700) of unresolved non-model faults into numeric task failure scores, with 130 semantic payload malformations bypassing standard exception wrappers. We introduce \texttt{evalfault}, a stage-aware provenance guard that eliminates 100\% of invalid score inclusions while preserving 100\% of clean controls and valid recoveries across a 450-case synthetic suite and a 50-trajectory live stress pilot.
+Benchmark scores for tool-using large language model (LLM) agents are widely presumed to reflect intrinsic model capability and robustness. However, current evaluation pipelines conflate two distinct sources of measurement distortion: \textit{behavioral distortion}, where security defenses achieve low attack success only by destroying legitimate agent utility, and \textit{infrastructure distortion}, where unresolved runtime or provider faults are silently recorded as model task failures. We present a dual-layer empirical audit quantifying both distortions across six agent benchmark harnesses and twelve production model configurations (20B to 550B total parameters). First, across 2,636 planned executions in AgentDojo (2,310 verified completions across Groq and OpenRouter cohorts), we compare capability-restriction (Tool Filter) against content-delimiting defenses (Spotlighting, Repeat Prompt). While Tool Filter drives targeted attack success to 0.0\% on open-weight backbones, it induces catastrophic benign utility collapse---dropping paired task completion by 84.6 percentage points on GPT-OSS-120B and 57.1 percentage points on GPT-OSS-20B. Across ten additional multi-family models, Tool Filter degrades benign utility in 100\% of configurations while yielding statistically significant attack reduction in only 30\%. Second, in a fault-injection audit across six benchmark runners---AgentDojo, InjecAgent, Agent Security Bench (ASB), AgentHarm, ToolSandbox, and $\tau^2$-bench---spanning 2,160 executions under seventeen fault conditions, native harnesses silently convert 60.7\% (425/700) of unresolved non-model faults into numeric task failure scores, with 130 semantic payload malformations bypassing standard exception wrappers. We introduce \texttt{evalfault}, a stage-aware provenance guard that eliminates 100\% of invalid score inclusions while preserving 100\% of clean controls and valid recoveries across a 450-case synthetic suite and a 50-trajectory live stress pilot.
 \end{abstract}
 
 \begin{IEEEkeywords}
