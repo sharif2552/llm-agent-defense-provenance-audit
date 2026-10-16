@@ -8,7 +8,7 @@
 
 ## Abstract
 
-Benchmark scores for tool-using large language model (LLM) agents are widely presumed to reflect intrinsic model capability and robustness. However, current evaluation pipelines conflate two distinct sources of measurement distortion: *behavioral distortion*, where security defenses achieve low attack success only by destroying legitimate agent utility, and *infrastructure distortion*, where unresolved runtime or provider faults are silently recorded as model task failures. We present a dual-layer empirical audit quantifying both distortions across six agent benchmark harnesses and twelve production model configurations (20B to 550B parameters). First, across 2,636 planned executions in AgentDojo (2,310 verified completions across Groq and OpenRouter cohorts), we compare capability-restriction (`Tool Filter`) against content-delimiting defenses (`Spotlighting`, `Repeat Prompt`). While `Tool Filter` drives targeted attack success to 0.0% on open-weight backbones, it induces catastrophic benign utility collapse—dropping paired task completion by 84.6 percentage points on GPT-OSS-120B and 57.1 percentage points on GPT-OSS-20B. Across ten additional multi-family models, `Tool Filter` degrades benign utility in 100% of configurations while yielding statistically significant attack reduction in only 30%. Second, in a fault-injection audit across six benchmark runners—AgentDojo, InjecAgent, Agent Security Bench (ASB), AgentHarm, ToolSandbox, and $\tau^2$-bench—spanning 2,160 executions under seventeen fault conditions, native harnesses silently convert 60.7% (425/700) of unresolved non-model faults into numeric task failure scores, with 130 semantic payload malformations bypassing standard exception wrappers. We introduce `evalfault`, a stage-aware provenance guard that eliminates 100% of invalid score inclusions while preserving 100% of clean controls and valid recoveries across a 450-case synthetic suite and a 50-trajectory live stress pilot.
+Benchmark scores for tool-using large language model (LLM) agents are widely presumed to reflect intrinsic model capability and robustness. However, current evaluation pipelines conflate two distinct sources of measurement distortion: *behavioral distortion*, where security defenses achieve low attack success only by destroying legitimate agent utility, and *infrastructure distortion*, where unresolved runtime or provider faults are silently recorded as model task failures. We present a dual-layer empirical audit quantifying both distortions across six agent benchmark harnesses and twelve production model configurations (20B to 550B parameters). First, across 2,636 planned executions in AgentDojo (2,310 verified completions across Groq and OpenRouter cohorts), we compare capability-restriction (Tool Filter) against content-delimiting defenses (Spotlighting, Repeat Prompt). While Tool Filter drives targeted attack success to 0.0% on open-weight backbones, it induces catastrophic benign utility collapse—dropping paired task completion by 84.6 percentage points on GPT-OSS-120B and 57.1 percentage points on GPT-OSS-20B. Across ten additional multi-family models, Tool Filter degrades benign utility in 100% of configurations while yielding statistically significant attack reduction in only 30%. Second, in a fault-injection audit across six benchmark runners—AgentDojo, InjecAgent, Agent Security Bench (ASB), AgentHarm, ToolSandbox, and $\tau^2$-bench—spanning 2,160 executions under seventeen fault conditions, native harnesses silently convert 60.7% (425/700) of unresolved non-model faults into numeric task failure scores, with 130 semantic payload malformations bypassing standard exception wrappers. We introduce `evalfault`, a stage-aware provenance guard that eliminates 100% of invalid score inclusions while preserving 100% of clean controls and valid recoveries across a 450-case synthetic suite and a 50-trajectory live stress pilot.
 
 **Keywords:** LLM agents, benchmark validity, indirect prompt injection, defense compatibility, failure provenance, fault injection, reproducibility
 
@@ -30,7 +30,7 @@ Prior literature has noted facets of each concern in isolation. AgentDojo introd
 
 What has remained missing is an integrated, empirical investigation of how behavioral defense degradation and infrastructure fault propagation jointly compromise agent benchmark validity. In this paper, we bridge this gap through a unified, multi-benchmark empirical audit across two complementary layers:
 
-- **Layer 1: Defense Compatibility Audit in AgentDojo.** We evaluate the shipped Workspace suite under static vector inspection and dynamic multi-model execution across 2,636 planned executions (2,310 verified completions). We test a 1,096-cell balanced panel (879 usable cells) on open-weight mixture-of-experts models (`gpt-oss-120b` and `gpt-oss-20b`) on Groq LPU hardware, followed by a multi-family cohort of 1,540 planned cells (1,431 usable cells) across ten production model configurations spanning five distinct families (20B to 550B parameters). We demonstrate that Tool Filter collapses benign utility by 84.6 percentage points on GPT-OSS-120B and 57.1 points on GPT-OSS-20B, with utility degradation reproducing across 100% of evaluated multi-family configurations, whereas content-delimiting defenses preserve task utility.
+- **Layer 1: Defense Compatibility Audit in AgentDojo.** We evaluate the shipped Workspace suite under static vector inspection and dynamic multi-model execution across 2,636 planned executions (2,310 verified completions). We test a 1,096-cell balanced panel (879 usable cells) on open-weight mixture-of-experts models (`gpt-oss-120b` and `gpt-oss-20b`) on Groq LPU hardware, followed by a multi-family cohort of 1,540 planned cells (1,431 usable cells) across ten production model configurations spanning five distinct model families (with disclosed scales from 3B active / 30B total up to 550B total parameters). We demonstrate that Tool Filter collapses benign utility by 84.6 percentage points on GPT-OSS-120B and 57.1 points on GPT-OSS-20B, with utility degradation reproducing across 100% of evaluated multi-family configurations, whereas content-delimiting defenses preserve task utility.
 - **Layer 2: Multi-Benchmark Failure Provenance Audit across Six Runners.** We audit six prominent agent benchmark harnesses: AgentDojo, InjecAgent, Agent Security Bench (ASB), AgentHarm, ToolSandbox, and $\tau^2$-bench. Across 2,160 controlled executions spanning seventeen provider fault conditions (1,080 matched pairs), native harnesses convert 425 of 700 unresolved non-model faults into completed numeric task failure scores (60.7% contamination rate).
 - **The Solution (`evalfault`) and Verification.** We present `evalfault`, an open-source, stage-aware provenance guard layer that decouples provider, harness, and evaluator lifecycles. In our controlled study, `evalfault` eliminates 100% of invalid score inclusions (zero invalid retained) while preserving all 60 clean controls and 320 valid recoveries. We validate the framework on a disjoint 450-case synthetic validation packet (0 false exclusions) and report an exploratory 50-trajectory live pilot under capacity-shedding stress.
 
@@ -91,7 +91,7 @@ Our static analysis verified that no injection vector causes an active task-crit
 ### 3.2 Controlled Multi-Defense Panel on Groq Hardware (RQ2)
 To evaluate defense compatibility under high-throughput controlled execution, we constructed a balanced panel of 1,096 planned cells executed on Groq LPU hardware. We evaluated two open-weight reasoning backbones: `openai/gpt-oss-120b` (120B mixture-of-experts) and `openai/gpt-oss-20b` (20B mixture-of-experts). These open-weight MoE architectures, executed on deterministic, high-throughput LPU inference hardware, provide a tightly controlled baseline free of black-box proprietary routing jitter.
 
-We evaluated four defense conditions across all 40 Workspace user tasks. Under benign conditions, 17 distinct user tasks are evaluated; under attack conditions, 120 task-injection combinations are evaluated, yielding $17 + 120 = 137$ planned cells per model-defense pair ($137 \times 4 \text{ defenses} \times 2 \text{ models} = 1,096$ total planned cells on Groq; similarly, $17 \text{ benign} + 60 \text{ attacked} = 77 \text{ cells} \times 2 \text{ defenses} \times 10 \text{ models} = 1,540$ planned cells across the OpenRouter cohort):
+We evaluated four defense conditions across all 40 Workspace user tasks. Under benign conditions, 17 distinct user tasks are evaluated; under attack conditions, 120 task-injection combinations are evaluated, yielding $17 + 120 = 137$ planned cells per model-defense pair ($137 \times 4 \text{ defenses} \times 2 \text{ models} = 1,096$ total planned cells on Groq; similarly, $17 \text{ benign} + 60 \text{ attacked} = 77 \text{ cells} \times 2 \text{ defenses} \times 10 \text{ models} = 1,540$ planned cells across the OpenRouter cohort). The 17 benign tasks comprise all distinct Workspace tasks featuring standalone ground-truth evaluation predicates without adversarial dependencies. For the attacked condition, Groq evaluates the full suite of 120 valid task-injection combinations ($40 \text{ tasks} \times 3 \text{ injection vectors}$), whereas the OpenRouter cohort evaluates a stratified 60-combination subset ($20 \text{ tasks} \times 3 \text{ injection vectors}$) to balance task diversity against third-party API rate quotas across ten commercial endpoints:
 1. **None (Baseline):** Native agent execution without prompt or tool restrictions.
 2. **Repeat Prompt:** Content-level baseline repeating user instructions after untrusted tool outputs.
 3. **Spotlighting:** Content-delimiting defense marking untrusted inputs with boundary tags.
@@ -127,7 +127,7 @@ Why does Tool Filter cause such catastrophic utility collapse? We analyzed trans
 2. **Whitelist Prediction and Formatting Failures (18.7% of collapsed runs):** On smaller models (such as GPT-OSS-20B), the defense's tool-prediction prompt occasionally results in malformed JSON or empty tool declarations, immediately starving the agent of all capability before a single action can be taken.
 
 ### 3.3 Multi-Model Cohort Across Ten Production Configurations (RQ2)
-To determine whether utility collapse is specific to open-weight MoE backbones or represents a general systemic pathology of capability-restriction defenses, we evaluated a multi-family cohort across ten production model configurations spanning five distinct families (20B to 550B total parameters).
+To determine whether utility collapse is specific to open-weight MoE backbones or represents a general systemic pathology of capability-restriction defenses, we evaluated a multi-family cohort across ten production model configurations spanning five distinct model families (with disclosed scales from 3B active / 30B total up to 550B total parameters).
 
 | ID | Canonical Model Name¹ | Model Family | Parameter Scale (Total / Active) | Architecture | Domain / Design Target |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -210,7 +210,7 @@ To rigorously quantify denominator contamination, we developed a fault taxonomy 
 2. **Transport Interruptions (3 conditions):** TCP connect timeout, socket read timeout, and premature socket teardown (`RemoteProtocolError`).
 3. **Response-Contract Malformations (4 conditions):** HTTP 200 OK with malformed JSON, empty choices array, model identity mismatch, and malformed tool call argument schema.
 
-Each fault condition was evaluated under two temporal persistence modes: *persistent* and *fail-once*. We evaluated these across 30 fixtures and 2 clean controls in a paired-arm design:
+Each fault condition was evaluated under two temporal persistence modes: *persistent* and *fail-once*. We evaluated these across 30 fixtures and 36 total conditions ($17 \text{ fault types} \times 2 \text{ persistence modes} + 2 \text{ clean controls}$) in a paired-arm design:
 $$30 \text{ fixtures} \times 36 \text{ conditions} \times 2 \text{ arms} = 2,160 \text{ clean-process executions}$$
 yielding 1,080 matched pairs comparing the **Native Arm** (unmodified benchmark runners) against the **Guarded Arm** (equipped with our provenance observer).
 
@@ -262,22 +262,23 @@ Output: Validated Benchmark Outcome O in {Scored(y), Quarantined(reason)}
 4:     for each attempt (e_{i,j}, tau_{i,j}) in A(s_i) do
 5:         if e_{i,j}.status != 200 or e_{i,j}.transport_error != None then
 6:             Mark transient transport/HTTP failure; V_stage(s_i) <- False
-7:         else if V(e_{i,j}.payload) == Invalid or e_{i,j}.choices == empty then
-8:             Mark semantic payload defect; V_stage(s_i) <- False  [Catches 130 non-exception defects]
-9:         else
-10:            V_stage(s_i) <- True
-11:            if j > 1 then
-12:                R <- True  [Valid retry recovery within stage s_i]
-13:            end if
-14:        end if
-15:    end for
-16: end for
-17: if exists s_i in S such that V_stage(s_i) == False then
-18:    return Quarantined(InfrastructureFault)  [Exclude from denominator]
-19: else
-20:    Evaluate Task Predicate y <- P(EnvironmentState)
-21:    return Scored(y)  [Eligible numeric outcome]
-22: end if
+7:         else if V(e_{i,j}.payload) = Invalid or e_{i,j}.choices = empty then
+8:             Mark semantic payload defect; V_stage(s_i) <- False
+9:             [Catches 130 non-exception defects]
+10:        else
+11:            V_stage(s_i) <- True
+12:            if j > 1 then
+13:                R <- True  [Valid retry recovery within stage s_i]
+14:            end if
+15:        end if
+16:    end for
+17: end for
+18: if exists s_i in S such that V_stage(s_i) = False then
+19:    return Quarantined(InfrastructureFault)  [Exclude from denominator]
+20: else
+21:    Evaluate Task Predicate y <- P(EnvironmentState)
+22:    return Scored(y)  [Eligible numeric outcome]
+23: end if
 ```
 
 ### 5.2 Controlled Interception and the Exception-Only Baseline (RQ5)
@@ -361,3 +362,11 @@ Valid evaluation of autonomous LLM agents requires that benchmark scores reflect
 
 To facilitate full independent replication and community adoption, the complete replication package—including the IEEEtran manuscript sources, raw attempt-level event ledgers across all 4,970 verified executions (2,310 Study 1 completed cells, 2,160 Study 2 controlled executions, 450 synthetic challenge cases, and 50 live pilot trajectories, drawn from 5,296 total planned evaluation units and 9,033+ raw API attempts), the `evalfault` observer harness, and the self-contained automated reproducibility verification suite—is publicly available under the MIT license at:  
 **https://github.com/sharif2552/llm-agent-defense-provenance-audit**
+
+---
+
+## Author Biographies
+
+**Md Sharif Hossain** received the B.Sc. degree in Computer Science and Engineering from Rajshahi University of Engineering & Technology (RUET), Bangladesh. His research interests include LLM-agent security, empirical benchmark validity, and dependable distributed AI systems.
+
+**Faez Mahmud** received the B.Sc. degree in Computer Science and Engineering from Rajshahi University of Engineering & Technology (RUET), Bangladesh. His research interests encompass AI safety, autonomous agent architectures, and secure evaluation methodologies for tool-using models.

@@ -22,7 +22,7 @@ Prior literature has noted facets of each concern in isolation. AgentDojo introd
 What has remained missing is an integrated, empirical investigation of how behavioral defense degradation and infrastructure fault propagation jointly compromise agent benchmark validity. In this paper, we bridge this gap through a unified, multi-benchmark empirical audit across two complementary layers:
 
 \begin{itemize}
-    \item \textbf{Layer 1: Defense Compatibility Audit in AgentDojo.} We evaluate the shipped Workspace suite under static vector inspection and dynamic multi-model execution across 2,636 planned executions (2,310 verified completions). We test a 1,096-cell balanced panel (879 usable cells) on open-weight mixture-of-experts models (\texttt{gpt-oss-120b} and \texttt{gpt-oss-20b}) on Groq LPU hardware, followed by a multi-family cohort of 1,540 planned cells (1,431 usable cells) across ten production model configurations spanning five distinct families (20B to 550B parameters). We demonstrate that Tool Filter collapses benign utility by 84.6 percentage points on GPT-OSS-120B and 57.1 points on GPT-OSS-20B, with utility degradation reproducing across 100\% of evaluated multi-family configurations, whereas content-delimiting defenses preserve task utility.
+    \item \textbf{Layer 1: Defense Compatibility Audit in AgentDojo.} We evaluate the shipped Workspace suite under static vector inspection and dynamic multi-model execution across 2,636 planned executions (2,310 verified completions). We test a 1,096-cell balanced panel (879 usable cells) on open-weight mixture-of-experts models (\texttt{gpt-oss-120b} and \texttt{gpt-oss-20b}) on Groq LPU hardware, followed by a multi-family cohort of 1,540 planned cells (1,431 usable cells) across ten production model configurations spanning five distinct model families (with disclosed scales from 3B active / 30B total up to 550B total parameters). We demonstrate that Tool Filter collapses benign utility by 84.6 percentage points on GPT-OSS-120B and 57.1 points on GPT-OSS-20B, with utility degradation reproducing across 100\% of evaluated multi-family configurations, whereas content-delimiting defenses preserve task utility.
     \item \textbf{Layer 2: Multi-Benchmark Failure Provenance Audit across Six Runners.} We audit six prominent agent benchmark harnesses: AgentDojo \cite{debenedetti2024agentdojo}, InjecAgent \cite{zhan2024injecagent}, Agent Security Bench (ASB) \cite{zhang2025asb}, AgentHarm \cite{andriushchenko2025agentharm}, ToolSandbox \cite{lu2024toolsandbox}, and $\tau^2$-bench \cite{barres2025tau2}. Across 2,160 controlled executions spanning seventeen provider fault conditions (1,080 matched pairs), native harnesses convert 425 of 700 unresolved non-model faults into completed numeric task failure scores (60.7\% contamination rate).
     \item \textbf{The Solution (\texttt{evalfault}) and Verification.} We present \texttt{evalfault}, an open-source, stage-aware provenance guard layer that decouples provider, harness, and evaluator lifecycles. In our controlled study, \texttt{evalfault} eliminates 100\% of invalid score inclusions (zero invalid retained) while preserving all 60 clean controls and 320 valid recoveries. We validate the framework on a disjoint 450-case synthetic validation packet (0 false exclusions) and report an exploratory 50-trajectory live pilot under capacity-shedding stress.
 \end{itemize}
@@ -106,7 +106,7 @@ Our static analysis verified that no injection vector causes an active task-crit
 
 To evaluate defense compatibility under high-throughput controlled execution, we constructed a balanced panel of 1,096 planned cells executed on Groq LPU hardware. We evaluated two open-weight reasoning backbones: \texttt{openai/gpt-oss-120b} (120B mixture-of-experts) and \texttt{openai/gpt-oss-20b} (20B mixture-of-experts). These open-weight MoE architectures, executed on deterministic, high-throughput LPU inference hardware, provide a tightly controlled baseline free of black-box proprietary routing jitter.
 
-We evaluated four defense conditions across all 40 Workspace user tasks. Under benign conditions, 17 distinct user tasks are evaluated; under attack conditions, 120 task-injection combinations are evaluated, yielding $17 + 120 = 137$ planned cells per model-defense pair ($137 \times 4 \text{ defenses} \times 2 \text{ models} = 1,096$ total planned cells on Groq; similarly, $17 \text{ benign} + 60 \text{ attacked} = 77 \text{ cells} \times 2 \text{ defenses} \times 10 \text{ models} = 1,540$ planned cells across the OpenRouter cohort):
+We evaluated four defense conditions across all 40 Workspace user tasks. Under benign conditions, 17 distinct user tasks are evaluated; under attack conditions, 120 task-injection combinations are evaluated, yielding $17 + 120 = 137$ planned cells per model-defense pair ($137 \times 4 \text{ defenses} \times 2 \text{ models} = 1,096$ total planned cells on Groq; similarly, $17 \text{ benign} + 60 \text{ attacked} = 77 \text{ cells} \times 2 \text{ defenses} \times 10 \text{ models} = 1,540$ planned cells across the OpenRouter cohort). The 17 benign tasks comprise all distinct Workspace tasks featuring standalone ground-truth evaluation predicates without adversarial dependencies. For the attacked condition, Groq evaluates the full suite of 120 valid task-injection combinations ($40 \text{ tasks} \times 3 \text{ injection vectors}$), whereas the OpenRouter cohort evaluates a stratified 60-combination subset ($20 \text{ tasks} \times 3 \text{ injection vectors}$) to balance task diversity against third-party API rate quotas across ten commercial endpoints:
 \begin{enumerate}
     \item \textbf{None (Baseline):} Native agent execution without prompt or tool restrictions.
     \item \textbf{Repeat Prompt:} Content-level baseline repeating user instructions after untrusted tool outputs \cite{perez2022ignore}.
@@ -116,28 +116,28 @@ We evaluated four defense conditions across all 40 Workspace user tasks. Under b
 
 Of the 1,096 planned cells, 879 yielded usable complete outcomes, 215 were unresolved due to transient provider rate limits, and 2 were excluded due to ambiguous completions. Table~\ref{tab:groq-outcomes} reports the complete-case outcomes across all four defenses.
 
-\begin{table*}[!t]
+\begin{table}[!t]
 \centering
 \caption{Groq complete-case defense outcomes across 879 usable cells. Each cell reports successes / all usable evaluations (percentage); matched-pair differences ($\Delta$BU of $-84.6$ pp on 120B and $-57.1$ pp on 20B) are computed over complete task pairs.}
 \label{tab:groq-outcomes}
-\footnotesize
-\setlength{\tabcolsep}{6pt}
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
 \begin{tabular}{@{}llrrr@{}}
 \toprule
-Model Configuration & Defense Condition & Benign Utility (BU) & Utility under Attack (UA) & Attack Success Rate (ASR) \\
+Model & Defense & BU & UA & ASR \\
 \midrule
-\textbf{GPT-OSS-120B} & None & 12/13 (92.3\%) & 59/86 (68.6\%) & 16/86 (18.6\%) \\
+\textbf{120B} & None & 12/13 (92.3\%) & 59/86 (68.6\%) & 16/86 (18.6\%) \\
  & Repeat Prompt & 13/15 (86.7\%) & 73/90 (81.1\%) & 5/90 (5.6\%) \\
  & Spotlighting & 12/13 (92.3\%) & 62/89 (69.7\%) & 13/89 (14.6\%) \\
  & Tool Filter & 1/17 (5.9\%) & 7/117 (6.0\%) & 0/117 (0.0\%) \\
 \midrule
-\textbf{GPT-OSS-20B} & None & 10/14 (71.4\%) & 61/89 (68.5\%) & 10/89 (11.2\%) \\
+\textbf{20B} & None & 10/14 (71.4\%) & 61/89 (68.5\%) & 10/89 (11.2\%) \\
  & Repeat Prompt & 11/14 (78.6\%) & 66/95 (69.5\%) & 7/95 (7.4\%) \\
  & Spotlighting & 11/14 (78.6\%) & 56/94 (59.6\%) & 15/94 (16.0\%) \\
  & Tool Filter & 2/17 (11.8\%) & 5/102 (4.9\%) & 0/102 (0.0\%) \\
 \bottomrule
 \end{tabular}
-\end{table*}
+\end{table}
 
 \begin{figure*}[!t]
 \centering
@@ -166,7 +166,7 @@ Why does Tool Filter cause such catastrophic utility collapse? We analyzed trans
 
 \subsection{Multi-Model Cohort Across Ten Production Configurations (RQ2)}\label{sec:openrouter}
 
-To determine whether utility collapse is specific to open-weight MoE backbones or represents a general systemic pathology of capability-restriction defenses, we evaluated a multi-family cohort across ten production model configurations spanning five distinct families (20B to 550B total parameters).
+To determine whether utility collapse is specific to open-weight MoE backbones or represents a general systemic pathology of capability-restriction defenses, we evaluated a multi-family cohort across ten production model configurations spanning five distinct model families (with disclosed scales from 3B active / 30B total up to 550B total parameters).
 
 \begin{table*}[!t]
 \centering
@@ -190,7 +190,7 @@ P1 & Laguna-S 2.1 & Poolside & Undisclosed / Dense & Dense Transformer & Code sy
 P2 & Laguna-XS 2.1 & Poolside & Undisclosed / Dense & Compact Dense & Lightweight agentic workflows \\
 \bottomrule
 \end{tabular}
-\vspace{3pt}\par\footnotesize{$^1$Exact API routing slugs evaluated: \texttt{cohere/north-mini-code}, \texttt{dots-studio/dots-3-note-preview}, \texttt{minimax/minimax-m2.7}, \texttt{minimax/minimax-m3}, \texttt{nvidia/nemotron-3-nano-omni-30b-a3b-reasoning}, \texttt{nvidia/nemotron-3-super-120b-a12b}, \texttt{nvidia/nemotron-3-ultra-550b-a55b}, \texttt{nvidia/nemotron-3.5-lightning}, \texttt{poolside/laguna-s-2.1}, and \texttt{poolside/laguna-xs-2.1}.}
+\vspace{3pt}\par\noindent\parbox{\linewidth}{\footnotesize $^1$Exact API routing slugs evaluated: \texttt{cohere/north-mini-code}, \texttt{dots-studio/dots-3-note-preview}, \texttt{minimax/minimax-m2.7}, \texttt{minimax/minimax-m3}, \texttt{nvidia/nemotron-3-nano-omni-30b-a3b-reasoning}, \texttt{nvidia/nemotron-3-super-120b-a12b}, \texttt{nvidia/nemotron-3-ultra-550b-a55b}, \texttt{nvidia/nemotron-3.5-lightning}, \texttt{poolside/laguna-s-2.1}, and \texttt{poolside/laguna-xs-2.1}.}
 \end{table*}
 
 Table~\ref{tab:openrouter-models} details the architectural parameters and model families. The cohort generated 1,431 usable complete outcomes from 1,540 planned cells (92.9\% coverage). Table~\ref{tab:openrouter-effects} reports matched-pair effects (Tool Filter minus no defense), and Figures~\ref{fig:tradeoff}, \ref{fig:openrouter-intervals}, and \ref{fig:cross-configuration-heatmap} visualize the security-utility tradeoff.
@@ -205,16 +205,16 @@ Table~\ref{tab:openrouter-models} details the architectural parameters and model
 \toprule
 ID & Canonical Model & Family & BU pairs & $\Delta$BU & UA pairs & $\Delta$UA & ASR pairs & $\Delta$ASR \\
 \midrule
-C1 & Cohere North Mini Code & Cohere & 5/17 & -100.0 & 17/60 & -47.1 & 17/60 & -17.6 \\
-D1 & Dots-3 Note Preview & Dots Studio & 17/17 & -64.7 & 60/60 & -3.3 & 60/60 & -46.7 \\
-M1 & MiniMax M2.7 & MiniMax & 16/17 & -43.8 & 46/60 & -37.0 & 46/60 & -10.9 \\
-M2 & MiniMax M3 & MiniMax & 17/17 & -52.9 & 54/60 & -70.4 & 54/60 & 0.0 \\
-N1 & Nemotron-3 Nano Omni & NVIDIA & 17/17 & -70.6 & 56/60 & -80.4 & 56/60 & -3.6 \\
-N2 & Nemotron-3 Super & NVIDIA & 16/17 & -100.0 & 58/60 & -27.6 & 58/60 & -32.8 \\
-N3 & Nemotron-3 Ultra & NVIDIA & 16/17 & -68.8 & 58/60 & -65.5 & 58/60 & 0.0 \\
-N4 & Nemotron-3.5 Lightning & NVIDIA & 17/17 & -94.1 & 57/60 & -54.4 & 57/60 & -24.6 \\
-P1 & Laguna-S 2.1 & Poolside & 16/17 & -56.2 & 58/60 & -69.0 & 58/60 & -13.8 \\
-P2 & Laguna-XS 2.1 & Poolside & 15/17 & -80.0 & 54/60 & -59.3 & 54/60 & -11.1 \\
+C1 & Cohere North Mini Code & Cohere & 5/17 & $-100.0$ & 17/60 & $-47.1$ & 17/60 & $-17.6$ \\
+D1 & Dots-3 Note Preview & Dots Studio & 17/17 & $-64.7$ & 60/60 & $-3.3$ & 60/60 & $-46.7$ \\
+M1 & MiniMax M2.7 & MiniMax & 16/17 & $-43.8$ & 46/60 & $-37.0$ & 46/60 & $-10.9$ \\
+M2 & MiniMax M3 & MiniMax & 17/17 & $-52.9$ & 54/60 & $-70.4$ & 54/60 & 0.0 \\
+N1 & Nemotron-3 Nano Omni & NVIDIA & 17/17 & $-70.6$ & 56/60 & $-80.4$ & 56/60 & $-3.6$ \\
+N2 & Nemotron-3 Super & NVIDIA & 16/17 & $-100.0$ & 58/60 & $-27.6$ & 58/60 & $-32.8$ \\
+N3 & Nemotron-3 Ultra & NVIDIA & 16/17 & $-68.8$ & 58/60 & $-65.5$ & 58/60 & 0.0 \\
+N4 & Nemotron-3.5 Lightning & NVIDIA & 17/17 & $-94.1$ & 57/60 & $-54.4$ & 57/60 & $-24.6$ \\
+P1 & Laguna-S 2.1 & Poolside & 16/17 & $-56.2$ & 58/60 & $-69.0$ & 58/60 & $-13.8$ \\
+P2 & Laguna-XS 2.1 & Poolside & 15/17 & $-80.0$ & 54/60 & $-59.3$ & 54/60 & $-11.1$ \\
 \bottomrule
 \end{tabular}
 \end{table*}
@@ -312,7 +312,7 @@ To rigorously quantify denominator contamination, we developed a fault taxonomy 
     \item \textbf{Response-Contract Malformations (4 conditions):} HTTP 200 OK with malformed JSON, empty choices array, model identity mismatch, and malformed tool call argument schema.
 \end{enumerate}
 
-Each fault condition was evaluated under two temporal persistence modes: \textit{persistent} (fault occurs on all retry attempts) and \textit{fail-once} (fault occurs on initial attempt, subsequent retry succeeds). We evaluated these across 30 fixtures and 2 clean controls in a paired-arm design:
+Each fault condition was evaluated under two temporal persistence modes: \textit{persistent} (fault occurs on all retry attempts) and \textit{fail-once} (fault occurs on initial attempt, subsequent retry succeeds). We evaluated these across 30 fixtures and 36 total conditions ($17 \text{ fault types} \times 2 \text{ persistence modes} + 2 \text{ clean controls}$) in a paired-arm design:
 \begin{equation}
 30 \text{ fixtures} \times 36 \text{ conditions} \times 2 \text{ arms} = 2,160 \text{ clean-process executions}
 \end{equation}
@@ -322,19 +322,19 @@ yielding 1,080 matched pairs comparing the \textbf{Native Arm} (unmodified bench
 
 Across the 2,160 executions, 700 unresolved non-model faults were delivered to each arm. Table~\ref{tab:controlled-breakdown} provides a detailed per-benchmark breakdown of outcome emission under these unresolved faults, and Figure~\ref{fig:contamination-breakdown} illustrates the contamination rates across benchmarks and fault categories.
 
-\begin{table*}[!t]
+\begin{table}[!t]
 \centering
 \caption{Controlled boundary fault-injection results across six benchmark runners (2,160 executions, 1,080 matched pairs).}
 \label{tab:controlled-breakdown}
-\footnotesize
-\setlength{\tabcolsep}{5pt}
+\scriptsize
+\setlength{\tabcolsep}{2pt}
 \begin{tabular}{@{}lrrrrrr@{}}
 \toprule
-Benchmark Harness & Total Runs per Arm & Delivered Unresolved Faults & Native Invalid Inclusions & Native Contamination Rate & Guarded Invalid Inclusions & Valid Recoveries Retained \\
+Harness & Runs & Faults & Nat.Inv & Nat.\% & Grd.Inv & Recov \\
 \midrule
 \textbf{AgentDojo} & 180 & 110 & 20 & 18.2\% & 0 & 60 \\
 \textbf{InjecAgent} & 180 & 125 & 20 & 16.0\% & 0 & 45 \\
-\textbf{Agent Security Bench (ASB)} & 180 & 125 & 125 & 100.0\% & 0 & 45 \\
+\textbf{ASB} & 180 & 125 & 125 & 100.0\% & 0 & 45 \\
 \textbf{AgentHarm} & 180 & 125 & 125 & 100.0\% & 0 & 45 \\
 \textbf{ToolSandbox} & 180 & 125 & 125 & 100.0\% & 0 & 45 \\
 $\boldsymbol{\tau^2}$\textbf{-bench} & 180 & 90 & 10 & 11.1\% & 0 & 80 \\
@@ -342,7 +342,7 @@ $\boldsymbol{\tau^2}$\textbf{-bench} & 180 & 90 & 10 & 11.1\% & 0 & 80 \\
 \textbf{Total / Summary} & \textbf{1,080} & \textbf{700} & \textbf{425} & \textbf{60.7\%} & \textbf{0} & \textbf{320} \\
 \bottomrule
 \end{tabular}
-\end{table*}
+\end{table}
 
 \begin{figure*}[!t]
 \centering
@@ -386,6 +386,7 @@ Algorithm~\ref{alg:evalfault} defines the formal stage-aware evaluation and reco
 \begin{algorithm}[!t]
 \caption{Stage-Aware Provenance Accounting in \texttt{evalfault}}
 \label{alg:evalfault}
+\footnotesize
 \begin{algorithmic}[1]
 \REQUIRE Required execution stages $\mathcal{S} = \{s_1, \dots, s_m\}$ with retry attempt streams $\mathcal{A}(s_i) = \{(e_{i,1}, \tau_{i,1}), \dots, (e_{i,k_i}, \tau_{i,k_i})\}$, Task Predicate $\mathcal{P}$, Schema Validator $\mathcal{V}$
 \ENSURE Validated Benchmark Outcome $O \in \{\text{Scored}(y), \text{Quarantined}(\text{reason})\}$
@@ -395,9 +396,9 @@ Algorithm~\ref{alg:evalfault} defines the formal stage-aware evaluation and reco
     \FOR{each attempt $(e_{i,j}, \tau_{i,j}) \in \mathcal{A}(s_i)$}
         \IF{$e_{i,j}.\text{status} \neq 200$ \OR $e_{i,j}.\text{transport\_error} \neq \emptyset$}
             \STATE Mark transient transport/HTTP failure; $V_{\text{stage}}(s_i) \leftarrow \text{False}$
-        \ELSIF{$\mathcal{V}(e_{i,j}.\text{payload}) == \text{Invalid}$ \OR $e_{i,j}.\text{choices} == \emptyset$}
+        \ELSIF{$\mathcal{V}(e_{i,j}.\text{payload}) = \text{Invalid}$ \OR $e_{i,j}.\text{choices} = \emptyset$}
             \STATE Mark semantic payload defect; $V_{\text{stage}}(s_i) \leftarrow \text{False}$
-            \COMMENT{Catches 130 non-exception defects}
+            \STATE \COMMENT{Catches 130 non-exception defects}
         \ELSE
             \STATE $V_{\text{stage}}(s_i) \leftarrow \text{True}$
             \IF{$j > 1$}
@@ -406,7 +407,7 @@ Algorithm~\ref{alg:evalfault} defines the formal stage-aware evaluation and reco
         \ENDIF
     \ENDFOR
 \ENDFOR
-\IF{$\exists s_i \in \mathcal{S} \text{ such that } V_{\text{stage}}(s_i) == \text{False}$}
+\IF{$\exists s_i \in \mathcal{S} \text{ such that } V_{\text{stage}}(s_i) = \text{False}$}
     \RETURN $\text{Quarantined}(\text{InfrastructureFault})$ \COMMENT{Exclude from denominator}
 \ELSE
     \STATE Evaluate Task Predicate $y \leftarrow \mathcal{P}(\text{EnvironmentState})$
