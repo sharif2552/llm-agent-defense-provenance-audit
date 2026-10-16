@@ -1,7 +1,6 @@
 \documentclass[journal]{IEEEtran}
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
-\usepackage{lmodern}
 \usepackage{microtype}
 \usepackage{graphicx}
 \usepackage{booktabs}
@@ -18,6 +17,9 @@
 \hypersetup{hidelinks}
 \urlstyle{same}
 \newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+
+\renewcommand{\dblfloatpagefraction}{0.85}
+\renewcommand{\dbltopfraction}{0.9}
 
 \title{Failure Is Not a Score: Auditing Defense Utility Collapse and Infrastructure Provenance in LLM-Agent Benchmarks}
 

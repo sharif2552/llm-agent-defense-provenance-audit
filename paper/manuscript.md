@@ -55,34 +55,31 @@ This threat motivated the creation of stateful benchmarks:
 - **InjecAgent** evaluates 1,054 injection test cases across direct harm and exfiltration.
 - **Agent Security Bench (ASB)** formalizes multi-turn attacks across diverse environments.
 - **AgentHarm** measures refusal rates under harmful requests.
-- **ToolSandbox** and **$\tau^2$-bench** evaluate stateful tool interactions and conversational domain policies.
+- **ToolSandbox**, **$\tau^2$-bench**, and **$\tau$-bench** evaluate stateful tool interactions, dual-control dynamics, and conversational domain policies.
+- **ToolEmu**, **AgentBench**, **ToolSword**, and **PromptBench** examine safety hazards, execution emulation, and adversarial prompt robustness across tool-augmented models.
 - **BIPIA** independently evaluates indirect injection in applications combining user instructions with third-party content.
 
 ### 2.2 Defenses and the Capability-Restriction Dilemma
 Defenses against indirect injection operate at distinct architectural boundaries:
 - **Content Delimiting:** Spotlighting marks untrusted content to help the model distinguish instructions from data. Repeat Prompt repeats the user prompt at the end of the context to reinforce user alignment. The Instruction Hierarchy trains models to prioritize privileged system instructions over unprivileged data.
 - **Structured Interfaces:** StruQ and SecAlign enforce structured query interfaces and alignment objectives to segregate control from data.
-- **Action Alignment and Verification:** Task Shield checks candidate tool actions against the original user task. VIGIL verifies actions before execution, framing restrictive protection as a security–utility tradeoff. AttriGuard attributes candidate tool calls via counterfactual prompting. ARGUS performs provenance-aware decision auditing.
-- **Information Flow Control:** CaMeL isolates control flows from untrusted tool outputs.
-- **Capability Restriction:** Tool Filter and Muzzle prompt the model to predict required tools from the user instruction and restrict subsequent execution to that declared whitelist.
+- **Action Alignment and Verification:** Task Shield checks candidate tool actions against the original user task, framing restrictive protection as a security–utility tradeoff.
+- **Information Flow Control:** CaMeL isolates control flows from untrusted tool outputs by design.
+- **Capability Restriction:** Tool Filter prompts the model to predict required tools from the user instruction and restrict subsequent execution to that declared whitelist.
 
 While capability restriction is intuitively appealing, it introduces a severe capability dilemma. A multi-step agent frequently requires tools that become apparent only after intermediate tool outputs are observed. If a defense aggressively restricts available tools at initialization, it suppresses attack actions at the cost of crippling legitimate work.
 
 ### 2.3 Benchmark Operational Reliability, Flakiness, and Execution Provenance
-A parallel line of research investigates the operational reliability of AI evaluation pipelines. Anthropic demonstrated that infrastructure noise (network dropouts, container restarts) can alter coding evaluation leaderboards by multiple percentage points. ReliabilityBench evaluated agents under API stress. Zhang et al. and Balusu et al. developed runtime telemetry frameworks to diagnose execution faults. Dong et al. documented how benchmark evaluators mis-score computer-use agents.
+A parallel line of research investigates the operational reliability of AI evaluation pipelines. Anthropic demonstrated that infrastructure noise (network dropouts, container restarts, resource enforcement jitter) can alter coding evaluation leaderboards by multiple percentage points. In autonomous software engineering benchmarks like SWE-bench and WebArena, test flakiness, environment drift, and unhandled tool timeouts routinely skew reported pass rates. In software engineering literature, extensive empirical studies by Parry et al. and Luo et al. establish that asynchronous test flakiness and runtime non-determinism systematically undermine empirical validity unless strictly isolated.
 
-Recent 2026 audits have begun examining evaluator trustworthiness:
-- **BenchJack** systematically audited LLM agent benchmarks for reward-hacking and grader exploits. Whereas BenchJack investigated algorithmic specification gaming by models against evaluators, our work investigates *infrastructure denominator contamination*: the silent leakage of non-model provider crashes into numeric score denominators.
-- **Evidence Tracing and Telemetry:** Wang et al. surveyed execution provenance in LLM systems, arguing that unverified agent traces undermine benchmark credibility. AgenTracer introduced fine-grained runtime telemetry. Solozobov criticized modern agent benchmarks for treating fragile execution traces as load-bearing scientific evidence.
-
-Our work bridges the gap between behavioral defense benchmarking and distributed systems reliability. We demonstrate that an agent's reported evaluation score cannot be interpreted without joint security-utility accounting and strict infrastructure failure provenance.
+Simultaneously, study of evaluator trustworthiness and reward-model gaming has revealed that automated evaluators (such as LLM-as-a-judge or proxy reward models) frequently mis-score complex trajectories. Whereas prior work has addressed algorithmic reward hacking by models, our work investigates *infrastructure denominator contamination*: the silent leakage of non-model provider crashes and transport timeouts into numeric score denominators. Our findings bridge the gap between behavioral defense benchmarking and distributed systems dependability, showing that an agent's evaluation score cannot be interpreted without joint security-utility accounting and strict infrastructure failure provenance.
 
 ---
 
 ## 3. Study 1: Defense Compatibility and Utility Collapse in AgentDojo
 
 ### 3.1 Static Injection Vector Overwrite Audit (RQ1)
-We conducted a static line-by-line audit of AgentDojo (Workspace suite v1.2.2). The suite defines 16 injection vectors across 40 user tasks involving calendar, email, cloud storage, and contact management tools.
+We conducted a static line-by-line audit of AgentDojo (PyPI package version 0.1.35 with Workspace suite schema v1.2.2). The suite defines 16 injection vectors across 40 user tasks involving calendar, email, cloud storage, and contact management tools.
 
 **RQ1 asks:** *Do shipped injection vectors overwrite data required by shipped user tasks?*
 
@@ -94,7 +91,7 @@ Our static analysis verified that no injection vector causes an active task-crit
 ### 3.2 Controlled Multi-Defense Panel on Groq Hardware (RQ2)
 To evaluate defense compatibility under high-throughput controlled execution, we constructed a balanced panel of 1,096 planned cells executed on Groq LPU hardware. We evaluated two open-weight reasoning backbones: `openai/gpt-oss-120b` (120B mixture-of-experts) and `openai/gpt-oss-20b` (20B mixture-of-experts). These open-weight MoE architectures, executed on deterministic, high-throughput LPU inference hardware, provide a tightly controlled baseline free of black-box proprietary routing jitter.
 
-We evaluated four defense conditions across all 40 Workspace user tasks under benign and attacked conditions:
+We evaluated four defense conditions across all 40 Workspace user tasks. Under benign conditions, 17 distinct user tasks are evaluated; under attack conditions, 120 task-injection combinations are evaluated, yielding $17 + 120 = 137$ planned cells per model-defense pair ($137 \times 4 \text{ defenses} \times 2 \text{ models} = 1,096$ total planned cells on Groq; similarly, $17 \text{ benign} + 60 \text{ attacked} = 77 \text{ cells} \times 2 \text{ defenses} \times 10 \text{ models} = 1,540$ planned cells across the OpenRouter cohort):
 1. **None (Baseline):** Native agent execution without prompt or tool restrictions.
 2. **Repeat Prompt:** Content-level baseline repeating user instructions after untrusted tool outputs.
 3. **Spotlighting:** Content-delimiting defense marking untrusted inputs with boundary tags.
@@ -119,8 +116,8 @@ Of the 1,096 planned cells, 879 yielded usable complete outcomes, 215 were unres
 **Empirical Contrast Between Defense Classes:**
 - **Content-Delimiting Defenses Preserve Utility:** Both Repeat Prompt and Spotlighting maintain high Benign Utility: GPT-OSS-120B achieves 86.7% and 92.3% BU under Repeat Prompt and Spotlighting, respectively, compared to 92.3% undefended. For GPT-OSS-20B, BU increases from 71.4% undefended to 78.6% under both Repeat Prompt and Spotlighting. Repeat Prompt also reduces ASR from 18.6% to 5.6% on 120B and from 11.2% to 7.4% on 20B.
 - **Capability Restriction Destroys Utility:** In stark contrast, Tool Filter achieves an ASR of 0.0% only by causing catastrophic utility collapse. On complete matched pairs:
-  - For **GPT-OSS-120B**, Benign Utility drops by **84.6 percentage points** (from 88.5% to 3.8% on matched pairs; 92.3% to 5.9% across all usable cases). Utility under attack (UA) plummets by **60.5 percentage points** (from 68.6% down to 6.0%).
-  - For **GPT-OSS-20B**, Benign Utility drops by **57.1 percentage points** (from 64.3% to 7.1% on matched pairs; 71.4% to 11.8% usable). UA plummets by **62.8 percentage points** (from 68.5% down to 4.9%).
+  - For **GPT-OSS-120B**, Benign Utility drops by **84.6 percentage points** (from 88.5% to 3.8% on matched pairs; 92.3% to 5.9% across all usable cases). Utility under attack (UA) plummets by **60.5 percentage points** (from 68.6% down to 8.1% on matched pairs; 68.6% down to 6.0% across all usable cases).
+  - For **GPT-OSS-20B**, Benign Utility drops by **57.1 percentage points** (from 64.3% to 7.1% on matched pairs; 71.4% to 11.8% usable). UA plummets by **62.8 percentage points** (from 67.9% down to 5.1% on matched pairs; 68.5% down to 4.9% across all usable cases).
 
 **Mechanistic Breakdown of Tool Filter Failure:**
 Why does Tool Filter cause such catastrophic utility collapse? We analyzed transcripts from the failed executions and identified two distinct failure mechanisms:
@@ -219,7 +216,7 @@ yielding 1,080 matched pairs comparing the **Native Arm** (unmodified benchmark 
 Across the 2,160 executions, 700 unresolved non-model faults were delivered to each arm.
 
 | Benchmark Harness | Total Runs per Arm | Delivered Unresolved Faults | Native Invalid Inclusions | Native Contamination Rate | Guarded Invalid Inclusions | Valid Recoveries Retained |
-| :--- | ---: | ---: | ---: | ---: | ---: | ---: |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | **AgentDojo** | 180 | 110 | 20 | 18.2% | 0 | 60 |
 | **InjecAgent** | 180 | 125 | 20 | 16.0% | 0 | 45 |
 | **Agent Security Bench (ASB)** | 180 | 125 | 125 | 100.0% | 0 | 45 |
@@ -291,7 +288,7 @@ In the guarded arm of the 2,160 controlled boundary executions:
 | **Stage-Aware `evalfault`** | **0 / 700** | **0** | **100.0%** |
 
 **Ablation: Why Exception-Only Wrappers Fail:**
-In the controlled boundary study, **130 of the 425 invalid inclusions bypassed standard exception handling**. When an upstream provider returns an HTTP 200 status code but provides an empty choices array, truncated JSON, or mismatched model metadata, standard client libraries do not raise an exception. The exception-only wrapper treats the returned object as a successful API response, passing the corrupted output into the agent harness where it is tallied as a model failure. `evalfault`'s stage-aware schema validation intercepts these payload defects, proving that structural provenance is necessary.
+In the controlled boundary study, **130 of the 425 invalid inclusions bypassed standard exception handling**. Of the 160 response-contract malformations, 30 cases (specifically, truncated JSON strings that trigger a client-side parser exception) are trapped by standard exception wrappers, whereas the remaining 130 cases (empty `choices`, model identity mismatches, and schema-invalid tool arguments returning HTTP 200 OK) bypass exception handlers completely, entering the benchmark score denominator unless intercepted by stage-aware validation. When an upstream provider returns an HTTP 200 status code with semantic payload corruptions, standard client libraries do not raise an exception, treating the returned object as a successful API response and passing the corrupted output into the agent harness where it is tallied as a model failure. `evalfault`'s stage-aware schema validation intercepts these payload defects, proving that structural provenance is necessary.
 
 ### 5.3 Synthetic Validation on 450 Disjoint Cases (RQ6)
 To evaluate whether stage-aware accounting generalizes beyond single provider calls to complex multi-step workflows (concurrency, fallbacks, tool chains), we tested `evalfault` on a disjoint 450-case synthetic validation packet.
@@ -357,5 +354,5 @@ Valid evaluation of autonomous LLM agents requires that benchmark scores reflect
 
 ## 9. Data and Software Availability
 
-To facilitate full independent replication and community adoption, the complete replication package—including the IEEEtran manuscript sources, raw attempt-level event ledgers across all 4,970 executions, the `evalfault` observer harness, and the self-contained automated reproducibility verification suite—is publicly available under the MIT license at:  
+To facilitate full independent replication and community adoption, the complete replication package—including the IEEEtran manuscript sources, raw attempt-level event ledgers across all 4,970 verified executions (2,310 Study 1 completed cells, 2,160 Study 2 controlled executions, 450 synthetic challenge cases, and 50 live pilot trajectories, drawn from 5,296 total planned evaluation units and 9,033+ raw API attempts), the `evalfault` observer harness, and the self-contained automated reproducibility verification suite—is publicly available under the MIT license at:  
 **https://github.com/sharif2552/llm-agent-defense-provenance-audit**

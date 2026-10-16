@@ -10,11 +10,11 @@ However, empirical evaluation of modern agent systems exposes two silent, pervas
     \item \textbf{Infrastructure Distortion (The Failure-as-a-Score Fallacy):} When API calls fail due to upstream provider rate limits, network timeouts, transport resets, or malformed JSON payloads, benchmark execution harnesses frequently fail to distinguish non-model infrastructure aborts from legitimate model failures. Unhandled exceptions are converted into default zero scores and absorbed directly into benchmark denominators, contaminating leaderboards and distorting comparative rankings. Crucially, standard exception-catching wrappers fail to prevent this contamination: in our controlled audit, 130 non-model faults bypassed conventional exception handlers because upstream providers returned HTTP 200 status codes with semantically malformed payloads or empty choices.
 \end{enumerate}
 
-Prior literature has noted facets of each concern in isolation. AgentDojo introduced joint reporting of benign utility (BU), utility under attack (UA), and ASR, observing that incapable agents can appear deceptively secure \cite{debenedetti2024agentdojo}. Subsequent defense proposals evaluate security alongside utility \cite{hines2024spotlighting,chen2025struq,chen2025secalign,jia2025taskshield,debenedetti2026camel,lin2026vigil,he2026attriguard,weng2026argus}. Simultaneously, systems studies have warned of infrastructure noise, flaky evaluations, and judge misattribution in LLM agent pipelines \cite{anthropic2026infrastructure,gupta2026reliabilitybench,zhang2026telemetry,balusu2026agenttelemetry,dong2026misscore,wang2026benchjack,wang2026traces,zhang2026agentracer,solozobov2026loadbearing}.
+Prior literature has noted facets of each concern in isolation. AgentDojo introduced joint reporting of benign utility (BU), utility under attack (UA), and ASR, observing that incapable agents can appear deceptively secure \cite{debenedetti2024agentdojo}. Subsequent defense proposals evaluate security alongside utility \cite{hines2024spotlighting,chen2025struq,chen2025secalign,jia2025taskshield,debenedetti2026camel}. Simultaneously, systems studies have warned of infrastructure noise, flaky evaluations, and judge misattribution in LLM agent pipelines \cite{anthropic2024infrastructure,jimenez2024swebench,zhou2024webarena,zheng2023judging,parry2022survey,luo2014empirical,gao2023scaling}.
 
 \begin{figure*}[!t]
 \centering
-\includegraphics[width=0.95\textwidth]{figures/figure_1_study_overview.png}
+\includegraphics[width=0.95\textwidth]{figures/figure_1_study_overview}
 \caption{Dual-layer measurement integrity in LLM-agent benchmarking. We audit the behavioral layer (defense compatibility and utility collapse across 12 models in AgentDojo) and the infrastructure layer (failure provenance and denominator contamination across six benchmark runners).}
 \label{fig:study-overview}
 \end{figure*}
@@ -61,7 +61,8 @@ This threat motivated the creation of stateful benchmarks:
     \item \textbf{InjecAgent} \cite{zhan2024injecagent} evaluates 1,054 injection test cases across direct harm and exfiltration.
     \item \textbf{Agent Security Bench (ASB)} \cite{zhang2025asb} formalizes multi-turn attacks across diverse environments.
     \item \textbf{AgentHarm} \cite{andriushchenko2025agentharm} measures refusal rates under harmful requests.
-    \item \textbf{ToolSandbox} \cite{lu2024toolsandbox} and $\boldsymbol{\tau^2}$\textbf{-bench} \cite{barres2025tau2} evaluate stateful tool interactions and conversational domain policies.
+    \item \textbf{ToolSandbox} \cite{lu2024toolsandbox}, $\boldsymbol{\tau^2}$\textbf{-bench} \cite{barres2025tau2}, and $\boldsymbol{\tau}$\textbf{-bench} \cite{yao2024taubench} evaluate stateful tool interactions, dual-control dynamics, and conversational domain policies.
+    \item \textbf{ToolEmu} \cite{ruan2024toolemu}, \textbf{AgentBench} \cite{liu2024agentbench}, \textbf{ToolSword} \cite{ye2024toolsword}, and \textbf{PromptBench} \cite{zhu2024promptbench} examine safety hazards, execution emulation, and adversarial prompt robustness across tool-augmented models.
     \item \textbf{BIPIA} \cite{yi2025bipia} independently evaluates indirect injection in applications combining user instructions with third-party content.
 \end{itemize}
 
@@ -70,31 +71,25 @@ This threat motivated the creation of stateful benchmarks:
 Defenses against indirect injection operate at distinct architectural boundaries:
 \begin{itemize}
     \item \textbf{Content Delimiting:} Spotlighting \cite{hines2024spotlighting} marks untrusted content to help the model distinguish instructions from data. Repeat Prompt repeats the user prompt at the end of the context to reinforce user alignment \cite{perez2022ignore}. The Instruction Hierarchy \cite{wallace2024instruction} trains models to prioritize privileged system instructions over unprivileged data.
-    \item \textbf{Structured Interfaces:} StruQ \cite{chen2025struq} and SecAlign \cite{chen2025secalign} enforce structured query interfaces and alignment objectives to segregate control from data.
-    \item \textbf{Action Alignment and Verification:} Task Shield \cite{jia2025taskshield} checks candidate tool actions against the original user task. VIGIL \cite{lin2026vigil} verifies actions before execution, framing restrictive protection as a security--utility tradeoff. AttriGuard \cite{he2026attriguard} attributes candidate tool calls via counterfactual prompting. ARGUS \cite{weng2026argus} performs provenance-aware decision auditing.
-    \item \textbf{Information Flow Control:} CaMeL \cite{debenedetti2026camel} isolates control flows from untrusted tool outputs.
-    \item \textbf{Capability Restriction:} Tool Filter \cite{debenedetti2024agentdojo} and Muzzle \cite{syros2026muzzle} prompt the model to predict required tools from the user instruction and restrict subsequent execution to that declared whitelist.
+    \item \textbf{Structured Interfaces:} StruQ \cite{chen2025struq} and SecAlign \cite{chen2025secalign} enforce structured query interfaces and preference-alignment objectives to segregate control from data.
+    \item \textbf{Action Alignment and Verification:} Task Shield \cite{jia2025taskshield} checks candidate tool actions against the original user task, framing restrictive protection as a security--utility tradeoff.
+    \item \textbf{Information Flow Control:} CaMeL \cite{debenedetti2026camel} isolates control flows from untrusted tool outputs by design.
+    \item \textbf{Capability Restriction:} Tool Filter \cite{debenedetti2024agentdojo} prompts the model to predict required tools from the user instruction and restrict subsequent execution to that declared whitelist.
 \end{itemize}
 
 While capability restriction is intuitively appealing, it introduces a severe capability dilemma. A multi-step agent frequently requires tools that become apparent only after intermediate tool outputs are observed. If a defense aggressively restricts available tools at initialization, it suppresses attack actions at the cost of crippling legitimate work.
 
 \subsection{Benchmark Operational Reliability, Flakiness, and Execution Provenance}
 
-A parallel line of research investigates the operational reliability of AI evaluation pipelines. Anthropic demonstrated that infrastructure noise (network dropouts, container restarts) can alter coding evaluation leaderboards by multiple percentage points \cite{anthropic2026infrastructure}. ReliabilityBench evaluated agents under API stress \cite{gupta2026reliabilitybench}. Zhang et al. \cite{zhang2026telemetry} and Balusu et al. \cite{balusu2026agenttelemetry} developed runtime telemetry frameworks to diagnose execution faults. Dong et al. documented how benchmark evaluators mis-score computer-use agents \cite{dong2026misscore}.
+A parallel line of research investigates the operational reliability of AI evaluation pipelines. Anthropic demonstrated that infrastructure noise (network dropouts, container restarts, resource enforcement jitter) can alter coding evaluation leaderboards by multiple percentage points \cite{anthropic2024infrastructure}. In autonomous software engineering benchmarks like SWE-bench \cite{jimenez2024swebench} and WebArena \cite{zhou2024webarena}, test flakiness, environment drift, and unhandled tool timeouts routinely skew reported pass rates. In software engineering literature, extensive empirical studies by Parry et al. \cite{parry2022survey} and Luo et al. \cite{luo2014empirical} establish that asynchronous test flakiness and runtime non-determinism systematically undermine empirical validity unless strictly isolated.
 
-Recent 2026 audits have begun examining evaluator trustworthiness:
-\begin{itemize}
-    \item \textbf{BenchJack} \cite{wang2026benchjack} systematically audited LLM agent benchmarks for reward-hacking and grader exploits. Whereas BenchJack investigated algorithmic specification gaming by models against evaluators, our work investigates \textit{infrastructure denominator contamination}: the silent leakage of non-model provider crashes into numeric score denominators.
-    \item \textbf{Evidence Tracing and Telemetry:} Wang et al. \cite{wang2026traces} surveyed execution provenance in LLM systems, arguing that unverified agent traces undermine benchmark credibility. AgenTracer \cite{zhang2026agentracer} introduced fine-grained runtime telemetry. Solozobov \cite{solozobov2026loadbearing} criticized modern agent benchmarks for treating fragile execution traces as load-bearing scientific evidence.
-\end{itemize}
-
-Our work bridges the gap between behavioral defense benchmarking and distributed systems reliability. We demonstrate that an agent's reported evaluation score cannot be interpreted without joint security-utility accounting and strict infrastructure failure provenance.
+Simultaneously, study of evaluator trustworthiness and reward-model gaming has revealed that automated evaluators (such as LLM-as-a-judge \cite{zheng2023judging} or proxy reward models \cite{gao2023scaling}) frequently mis-score complex trajectories. Whereas prior work has addressed algorithmic reward hacking by models, our work investigates \textit{infrastructure denominator contamination}: the silent leakage of non-model provider crashes and transport timeouts into numeric score denominators. Our findings bridge the gap between behavioral defense benchmarking and distributed systems dependability, showing that an agent's evaluation score cannot be interpreted without joint security-utility accounting and strict infrastructure failure provenance.
 
 \section{Study 1: Defense Compatibility and Utility Collapse in AgentDojo}\label{sec:study1}
 
 \subsection{Static Injection Vector Overwrite Audit (RQ1)}
 
-We conducted a static line-by-line audit of AgentDojo \cite{agentdojo0135} (Workspace suite v1.2.2). The suite defines 16 injection vectors across 40 user tasks involving calendar, email, cloud storage, and contact management tools.
+We conducted a static line-by-line audit of AgentDojo \cite{agentdojo0135} (PyPI package version 0.1.35 with Workspace suite schema v1.2.2). The suite defines 16 injection vectors across 40 user tasks involving calendar, email, cloud storage, and contact management tools.
 
 \textbf{RQ1 asks:} \textit{Do shipped injection vectors overwrite data required by shipped user tasks?}
 
@@ -102,7 +97,7 @@ Our static analysis verified that no injection vector causes an active task-crit
 
 \begin{figure*}[!t]
 \centering
-\includegraphics[width=0.95\textwidth]{figures/figure_rq1_vector_audit.png}
+\includegraphics[width=0.95\textwidth]{figures/figure_rq1_vector_audit}
 \caption{Static injection vector audit across 16 Workspace vectors, mapping target state fixtures and data adjacency.}
 \label{fig:vector-audit}
 \end{figure*}
@@ -111,7 +106,7 @@ Our static analysis verified that no injection vector causes an active task-crit
 
 To evaluate defense compatibility under high-throughput controlled execution, we constructed a balanced panel of 1,096 planned cells executed on Groq LPU hardware. We evaluated two open-weight reasoning backbones: \texttt{openai/gpt-oss-120b} (120B mixture-of-experts) and \texttt{openai/gpt-oss-20b} (20B mixture-of-experts). These open-weight MoE architectures, executed on deterministic, high-throughput LPU inference hardware, provide a tightly controlled baseline free of black-box proprietary routing jitter.
 
-We evaluated four defense conditions across all 40 Workspace user tasks under benign and attacked conditions:
+We evaluated four defense conditions across all 40 Workspace user tasks. Under benign conditions, 17 distinct user tasks are evaluated; under attack conditions, 120 task-injection combinations are evaluated, yielding $17 + 120 = 137$ planned cells per model-defense pair ($137 \times 4 \text{ defenses} \times 2 \text{ models} = 1,096$ total planned cells on Groq; similarly, $17 \text{ benign} + 60 \text{ attacked} = 77 \text{ cells} \times 2 \text{ defenses} \times 10 \text{ models} = 1,540$ planned cells across the OpenRouter cohort):
 \begin{enumerate}
     \item \textbf{None (Baseline):} Native agent execution without prompt or tool restrictions.
     \item \textbf{Repeat Prompt:} Content-level baseline repeating user instructions after untrusted tool outputs \cite{perez2022ignore}.
@@ -146,7 +141,7 @@ Model Configuration & Defense Condition & Benign Utility (BU) & Utility under At
 
 \begin{figure*}[!t]
 \centering
-\includegraphics[width=\textwidth]{figures/figure_2_groq_profiles.png}
+\includegraphics[width=\textwidth]{figures/figure_2_groq_profiles}
 \caption{Groq complete-case outcome profiles. Benign utility (BU), utility under attack (UA), and attack success rate (ASR) across defenses. Tool Filter collapses BU and UA for both GPT-OSS-120B and GPT-OSS-20B.}
 \label{fig:groq-profiles}
 \end{figure*}
@@ -157,8 +152,8 @@ Table~\ref{tab:groq-outcomes} and Figure~\ref{fig:groq-profiles} illuminate a st
     \item \textbf{Content-Delimiting Defenses Preserve Utility:} Both Repeat Prompt and Spotlighting maintain high Benign Utility: GPT-OSS-120B achieves 86.7\% and 92.3\% BU under Repeat Prompt and Spotlighting, respectively, compared to 92.3\% undefended. For GPT-OSS-20B, BU increases from 71.4\% undefended to 78.6\% under both Repeat Prompt and Spotlighting. Repeat Prompt also reduces ASR from 18.6\% to 5.6\% on 120B and from 11.2\% to 7.4\% on 20B.
     \item \textbf{Capability Restriction Destroys Utility:} In stark contrast, Tool Filter achieves an ASR of 0.0\% only by causing catastrophic utility collapse. On complete matched pairs:
     \begin{itemize}
-        \item For \textbf{GPT-OSS-120B}, Benign Utility drops by \textbf{84.6 percentage points} (from 88.5\% to 3.8\% on matched pairs; 92.3\% to 5.9\% across all usable cases). Utility under attack (UA) plummets by \textbf{60.5 percentage points} (from 68.6\% down to 6.0\%).
-        \item For \textbf{GPT-OSS-20B}, Benign Utility drops by \textbf{57.1 percentage points} (from 64.3\% to 7.1\% on matched pairs; 71.4\% to 11.8\% usable). UA plummets by \textbf{62.8 percentage points} (from 68.5\% down to 4.9\%).
+        \item For \textbf{GPT-OSS-120B}, Benign Utility drops by \textbf{84.6 percentage points} (from 88.5\% to 3.8\% on matched pairs; 92.3\% to 5.9\% across all usable cases). Utility under attack (UA) plummets by \textbf{60.5 percentage points} (from 68.6\% down to 8.1\% on matched pairs; 68.6\% down to 6.0\% across all usable cases).
+        \item For \textbf{GPT-OSS-20B}, Benign Utility drops by \textbf{57.1 percentage points} (from 64.3\% to 7.1\% on matched pairs; 71.4\% to 11.8\% usable). UA plummets by \textbf{62.8 percentage points} (from 67.9\% down to 5.1\% on matched pairs; 68.5\% down to 4.9\% across all usable cases).
     \end{itemize}
 \end{itemize}
 
@@ -181,7 +176,7 @@ To determine whether utility collapse is specific to open-weight MoE backbones o
 \setlength{\tabcolsep}{5pt}
 \begin{tabular}{@{}llllll@{}}
 \toprule
-ID & Canonical Model Name\footnotemark & Model Family & Parameter Scale (Total / Active) & Architecture & Domain / Design Target \\
+ID & Canonical Model Name & Model Family & Parameter Scale (Total / Active) & Architecture & Domain / Design Target \\
 \midrule
 C1 & Cohere North Mini Code & Cohere & Undisclosed / Dense & Dense Transformer & Code-specialized reasoning \\
 D1 & Dots-3 Note Preview & Dots Studio & Undisclosed / Dense & Dense Transformer & Note-taking \& productivity \\
@@ -195,8 +190,8 @@ P1 & Laguna-S 2.1 & Poolside & Undisclosed / Dense & Dense Transformer & Code sy
 P2 & Laguna-XS 2.1 & Poolside & Undisclosed / Dense & Compact Dense & Lightweight agentic workflows \\
 \bottomrule
 \end{tabular}
+\vspace{3pt}\par\footnotesize{$^1$Exact API routing slugs evaluated: \texttt{cohere/north-mini-code}, \texttt{dots-studio/dots-3-note-preview}, \texttt{minimax/minimax-m2.7}, \texttt{minimax/minimax-m3}, \texttt{nvidia/nemotron-3-nano-omni-30b-a3b-reasoning}, \texttt{nvidia/nemotron-3-super-120b-a12b}, \texttt{nvidia/nemotron-3-ultra-550b-a55b}, \texttt{nvidia/nemotron-3.5-lightning}, \texttt{poolside/laguna-s-2.1}, and \texttt{poolside/laguna-xs-2.1}.}
 \end{table*}
-\footnotetext{Exact API routing slugs evaluated: \texttt{cohere/north-mini-code}, \texttt{dots-studio/dots-3-note-preview}, \texttt{minimax/minimax-m2.7}, \texttt{minimax/minimax-m3}, \texttt{nvidia/nemotron-3-nano-omni-30b-a3b-reasoning}, \texttt{nvidia/nemotron-3-super-120b-a12b}, \texttt{nvidia/nemotron-3-ultra-550b-a55b}, \texttt{nvidia/nemotron-3.5-lightning}, \texttt{poolside/laguna-s-2.1}, and \texttt{poolside/laguna-xs-2.1}.}
 
 Table~\ref{tab:openrouter-models} details the architectural parameters and model families. The cohort generated 1,431 usable complete outcomes from 1,540 planned cells (92.9\% coverage). Table~\ref{tab:openrouter-effects} reports matched-pair effects (Tool Filter minus no defense), and Figures~\ref{fig:tradeoff}, \ref{fig:openrouter-intervals}, and \ref{fig:cross-configuration-heatmap} visualize the security-utility tradeoff.
 
@@ -226,21 +221,21 @@ P2 & Laguna-XS 2.1 & Poolside & 15/17 & -80.0 & 54/60 & -59.3 & 54/60 & -11.1 \\
 
 \begin{figure}[!t]
 \centering
-\includegraphics[width=\columnwidth]{figures/figure_3_openrouter_tradeoff.png}
+\includegraphics[width=\columnwidth]{figures/figure_3_openrouter_tradeoff}
 \caption{OpenRouter cohort trade-off. Utility loss vs. attack reduction across ten model configurations. Tool Filter reduced utility in 100\% of configurations, while significant attack reductions occurred in only three.}
 \label{fig:tradeoff}
 \end{figure}
 
 \begin{figure*}[!t]
 \centering
-\includegraphics[width=0.98\textwidth]{figures/figure_5_openrouter_intervals.png}
+\includegraphics[width=0.98\textwidth]{figures/figure_5_openrouter_intervals}
 \caption{OpenRouter paired effects with 95\% task-clustered bootstrap intervals. Negative utility changes indicate functionality loss; negative ASR changes indicate security improvement. Endpoint IDs follow Table~\ref{tab:openrouter-effects}.}
 \label{fig:openrouter-intervals}
 \end{figure*}
 
 \begin{figure*}[!t]
 \centering
-\includegraphics[width=0.98\textwidth]{figures/figure_cross_configuration_heatmap.png}
+\includegraphics[width=0.98\textwidth]{figures/figure_cross_configuration_heatmap}
 \caption{Cross-configuration summary of Tool Filter minus no defense. Color intensity encodes matched-pair changes in BU, UA, and ASR and complete-pair coverage; filled markers denote Holm-adjusted support at $p<0.05$. Utility degradation is consistent, whereas supported ASR reduction is configuration dependent.}
 \label{fig:cross-configuration-heatmap}
 \end{figure*}
@@ -261,7 +256,7 @@ We emphasize an essential methodological property of our Study 1 results: \texti
 
 \begin{figure*}[!t]
 \centering
-\includegraphics[width=0.96\textwidth]{figures/figure_4_coverage_provenance.png}
+\includegraphics[width=0.96\textwidth]{figures/figure_4_coverage_provenance}
 \caption{Outcome coverage and operational provenance. Distinguishing planned scientific cells from repeated API attempts. Repeated attempts are not independent replicates.}
 \label{fig:provenance}
 \end{figure*}
@@ -351,7 +346,7 @@ $\boldsymbol{\tau^2}$\textbf{-bench} & 180 & 90 & 10 & 11.1\% & 0 & 80 \\
 
 \begin{figure*}[!t]
 \centering
-\includegraphics[width=0.98\textwidth]{figures/figure_9_contamination_breakdown.png}
+\includegraphics[width=0.98\textwidth]{figures/figure_9_contamination_breakdown}
 \caption{Empirical benchmark contamination under injected infrastructure faults (2,160 executions). Panel (a) shows contamination rates across six native benchmark runners vs. guarded execution. Panel (b) breaks down contamination across the three fault families, highlighting the 130 invalid inclusions that bypass standard exception handling.}
 \label{fig:contamination-breakdown}
 \end{figure*}
@@ -381,7 +376,7 @@ To prevent infrastructure and transport failures from corrupting benchmark score
 
 \begin{figure*}[!t]
 \centering
-\includegraphics[width=0.95\textwidth]{figures/figure_8_evalfault_architecture.png}
+\includegraphics[width=0.95\textwidth]{figures/figure_8_evalfault_architecture}
 \caption{The \texttt{evalfault} 3-stage provenance guard architecture. Decoupling provider, harness, and evaluator lifecycles intercepts transport drops, rate limits, and payload schema malformations before they corrupt benchmark denominators.}
 \label{fig:evalfault-architecture}
 \end{figure*}
@@ -445,7 +440,7 @@ Exception-Only Wrapper & 130 / 700 & 130 & 81.4\% \\
 \end{tabular}
 \end{table}
 
-Table~\ref{tab:exception-ablation} compares the three accounting policies. In the controlled boundary study, \textbf{130 of the 425 invalid inclusions bypassed standard exception handling}. When an upstream provider returns an HTTP 200 status code but provides an empty choices array, truncated JSON, or mismatched model metadata, standard client libraries do not raise an exception. The exception-only wrapper treats the returned object as a successful API response, passing the corrupted output into the agent harness where it is tallied as a model failure. \texttt{evalfault}'s stage-aware schema validation intercepts these payload defects, proving that structural provenance is necessary.
+Table~\ref{tab:exception-ablation} compares the three accounting policies. In the controlled boundary study, \textbf{130 of the 425 invalid inclusions bypassed standard exception handling}. Of the 160 response-contract malformations, 30 cases (specifically, truncated JSON strings that trigger a client-side parser exception) are trapped by standard exception wrappers, whereas the remaining 130 cases (empty \texttt{choices}, model identity mismatches, and schema-invalid tool arguments returning HTTP 200 OK) bypass exception handlers completely, entering the benchmark score denominator unless intercepted by stage-aware validation. When an upstream provider returns an HTTP 200 status code with semantic payload corruptions, standard client libraries do not raise an exception, treating the returned object as a successful API response and passing the corrupted output into the agent harness where it is tallied as a model failure. \texttt{evalfault}'s stage-aware schema validation intercepts these payload defects, proving that structural provenance is necessary.
 
 \subsection{Synthetic Validation on 450 Disjoint Cases (RQ6)}
 
@@ -536,5 +531,5 @@ Our findings are bounded by the evaluated scopes:
 Valid evaluation of autonomous LLM agents requires that benchmark scores reflect model capabilities rather than behavioral utility destruction or infrastructure flakiness. Our dual-layer audit proves that capability-restriction defenses like Tool Filter create an illusion of security by collapsing benign utility across 100\% of evaluated model configurations, while native benchmark runners across six major suites convert 60.7\% of unresolved infrastructure faults into false model failure scores. By combining paired security-utility accounting with the \texttt{evalfault} stage-aware provenance guard, the community can eliminate denominator contamination and restore measurement integrity to LLM agent benchmarking.
 
 \section*{Data and Software Availability}
-To facilitate full independent replication and community adoption, the complete replication package---including the IEEEtran manuscript sources, raw attempt-level event ledgers across all 4,970 executions, the \texttt{evalfault} observer harness, and the self-contained automated reproducibility verification suite---is publicly available under the MIT license at:
+To facilitate full independent replication and community adoption, the complete replication package---including the IEEEtran manuscript sources, raw attempt-level event ledgers across all 4,970 verified executions (2,310 Study~1 completed cells, 2,160 Study~2 controlled executions, 450 synthetic challenge cases, and 50 live pilot trajectories, drawn from 5,296 total planned evaluation units and 9,033+ raw API attempts), the \texttt{evalfault} observer harness, and the self-contained automated reproducibility verification suite---is publicly available under the MIT license at:
 \url{https://github.com/sharif2552/llm-agent-defense-provenance-audit}.
