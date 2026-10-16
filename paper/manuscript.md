@@ -127,7 +127,7 @@ Why does Tool Filter cause such catastrophic utility collapse? We analyzed trans
 2. **Whitelist Prediction and Formatting Failures (18.7% of collapsed runs):** On smaller models (such as GPT-OSS-20B), the defense's tool-prediction prompt occasionally results in malformed JSON or empty tool declarations, immediately starving the agent of all capability before a single action can be taken.
 
 ### 3.3 Multi-Model Cohort Across Ten Production Configurations (RQ2)
-To determine whether utility collapse is specific to open-weight MoE backbones or represents a general systemic pathology of capability-restriction defenses, we evaluated a multi-family cohort across ten production model configurations spanning five distinct model families (with disclosed scales from 20B total / 3B active up to 550B total parameters).
+To determine whether utility collapse is specific to open-weight MoE backbones or represents a general systemic pathology of capability-restriction defenses, we evaluated a multi-family cohort across ten production model configurations spanning five distinct model families (with disclosed scales from 3B active / 30B total up to 550B total parameters).
 
 | ID | Canonical Model Name¹ | Model Family | Parameter Scale (Total / Active) | Architecture | Domain / Design Target |
 | :--- | :--- | :--- | :--- | :--- | :--- |
