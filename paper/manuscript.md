@@ -45,7 +45,7 @@ What has remained missing is an integrated, empirical investigation of how behav
 
 ---
 
-## 2. Background and Related Work
+## 2. Background, Related Work, and Prior Art Differentiation
 
 ### 2.1 Indirect Prompt Injection in Tool-Using Agents
 Indirect prompt injection occurs when an LLM agent processes untrusted third-party data containing embedded instructions designed to hijack execution. Unlike standard chatbot jailbreaks, tool-using agents possess external actuators (e.g., file modification, email dispatch, financial transfer), meaning that successful injections lead directly to unauthorized state mutations or data exfiltration.
@@ -56,19 +56,26 @@ This threat motivated the creation of stateful benchmarks:
 - **Agent Security Bench (ASB)** formalizes multi-turn attacks across diverse environments.
 - **AgentHarm** measures refusal rates under harmful requests.
 - **ToolSandbox** and **$\tau^2$-bench** evaluate stateful tool interactions and conversational domain policies.
+- **BIPIA** independently evaluates indirect injection in applications combining user instructions with third-party content.
 
 ### 2.2 Defenses and the Capability-Restriction Dilemma
 Defenses against indirect injection operate at distinct architectural boundaries:
-- **Content Delimiting:** Spotlighting marks untrusted content to help the model distinguish instructions from data. Repeat Prompt repeats the user prompt at the end of the context to reinforce user alignment.
-- **Structured Interfaces:** StruQ enforces structured query interfaces to segregate control from data.
-- **Action Alignment and Verification:** Task Shield checks candidate tool actions against the original user task. VIGIL verifies actions before execution, framing restrictive protection as a security–utility tradeoff. AttriGuard attributes candidate tool calls via counterfactual prompting.
+- **Content Delimiting:** Spotlighting marks untrusted content to help the model distinguish instructions from data. Repeat Prompt repeats the user prompt at the end of the context to reinforce user alignment. The Instruction Hierarchy trains models to prioritize privileged system instructions over unprivileged data.
+- **Structured Interfaces:** StruQ and SecAlign enforce structured query interfaces and alignment objectives to segregate control from data.
+- **Action Alignment and Verification:** Task Shield checks candidate tool actions against the original user task. VIGIL verifies actions before execution, framing restrictive protection as a security–utility tradeoff. AttriGuard attributes candidate tool calls via counterfactual prompting. ARGUS performs provenance-aware decision auditing.
 - **Information Flow Control:** CaMeL isolates control flows from untrusted tool outputs.
-- **Capability Restriction:** Tool Filter prompts the model to predict required tools from the user instruction and restricts subsequent execution to that declared whitelist.
+- **Capability Restriction:** Tool Filter and Muzzle prompt the model to predict required tools from the user instruction and restrict subsequent execution to that declared whitelist.
 
 While capability restriction is intuitively appealing, it introduces a severe capability dilemma. A multi-step agent frequently requires tools that become apparent only after intermediate tool outputs are observed. If a defense aggressively restricts available tools at initialization, it suppresses attack actions at the cost of crippling legitimate work.
 
-### 2.3 Benchmark Reliability and Infrastructure Noise
-A parallel line of research investigates the operational reliability of AI evaluation pipelines. Anthropic demonstrated that infrastructure noise (network dropouts, container restarts) can alter coding evaluation leaderboards by multiple percentage points. ReliabilityBench evaluated agents under API stress. Zhang et al. and Balusu developed runtime telemetry frameworks to diagnose execution faults. Dong et al. documented how benchmark evaluators mis-score computer-use agents.
+### 2.3 Benchmark Operational Reliability, Flakiness, and Execution Provenance
+A parallel line of research investigates the operational reliability of AI evaluation pipelines. Anthropic demonstrated that infrastructure noise (network dropouts, container restarts) can alter coding evaluation leaderboards by multiple percentage points. ReliabilityBench evaluated agents under API stress. Zhang et al. and Balusu et al. developed runtime telemetry frameworks to diagnose execution faults. Dong et al. documented how benchmark evaluators mis-score computer-use agents.
+
+Recent 2026 audits have begun examining evaluator trustworthiness:
+- **BenchJack** systematically audited LLM agent benchmarks for reward-hacking and grader exploits. Whereas BenchJack investigated algorithmic specification gaming by models against evaluators, our work investigates *infrastructure denominator contamination*: the silent leakage of non-model provider crashes into numeric score denominators.
+- **Evidence Tracing and Telemetry:** Wang et al. surveyed execution provenance in LLM systems, arguing that unverified agent traces undermine benchmark credibility. AgenTracer introduced fine-grained runtime telemetry. Solozobov criticized modern agent benchmarks for treating fragile execution traces as load-bearing scientific evidence.
+
+Our work bridges the gap between behavioral defense benchmarking and distributed systems reliability. We demonstrate that an agent's reported evaluation score cannot be interpreted without joint security-utility accounting and strict infrastructure failure provenance.
 
 ---
 
@@ -195,10 +202,8 @@ To determine how LLM agent benchmark runners behave when provider and network in
 | **ToolSandbox** | Stateful sandboxed tool execution | Traps general scenario exceptions and converts to zero similarity | Environment-level watchdog timeout | State-trajectory similarity metrics against ground-truth state | Exception-handling traps provider aborts and emits zero similarity, scored as model failure |
 | **$\tau^2$-bench** | Multi-turn conversational domain policies | Simulates infrastructure error without reward on exhausted calls | Fixed turn budget; terminates on transport disconnect | Domain policy rule engine and reward function | Transport resets terminate trajectory with zero reward, tallies as policy failure |
 
-While each harness implements error handling at some level, critical structural differences dictate whether an infrastructure fault propagates cleanly or silently corrupts the benchmark denominator:
-- **Textual Exception Absorption (ASB, ToolSandbox):** ASB catches network and API exceptions and formats the exception message into a simulated model response string (e.g., *"Error: Connection timed out"*). The task evaluator inspects this response text, finds no valid tool invocation, and assigns a task completion score of 0.0. ToolSandbox traps runtime exceptions and outputs zero trajectory similarity. In both cases, the benchmark runner produces an identical numeric zero score for an infrastructure crash as it would for a model that followed instructions but failed the task.
-- **Judge Misclassification (AgentHarm):** In safety evaluations where an automated LLM judge scores agent refusal, provider faults occurring during judge invocation cause the exception handler to fall back to a default boolean flag (`refusal = False`). This directly scores a network fault as a dangerous refusal failure.
-- **Execution Loop Abort (AgentDojo, InjecAgent, $\tau^2$-bench):** When an unhandled exception terminates the interaction loop, intermediate partial state is evaluated against the post-task condition. Because legitimate state mutations were never completed, the state predicate evaluates to False, entering zero into the score denominator.
+**Deterministic Replay and Evidence Receipts:**
+To guarantee that our findings are completely verifiable and immune to test-retest flakiness, every execution in Study 2 records an immutable cryptographic receipt (`*.receipt.json`) alongside its event stream. These receipts store the exact request body hash, the raw provider HTTP status code, response headers, latency, and the resulting state mutation. The complete suite of receipts is audited in `saved_evidence_audit.json`, verifying 100% bit-exact reproducibility across independent audit passes.
 
 ### 4.2 Fault Injection Taxonomy and Controlled Boundary Design
 To rigorously quantify denominator contamination, we developed a fault taxonomy comprising seventeen distinct provider and transport fault conditions:
@@ -223,6 +228,9 @@ Across the 2,160 executions, 700 unresolved non-model faults were delivered to e
 | **$\tau^2$-bench** | 180 | 90 | 10 | 11.1% | 0 | 80 |
 | **Total / Summary** | **1,080** | **700** | **425** | **60.7%** | **0** | **320** |
 
+![Figure 9: Empirical benchmark contamination under injected infrastructure faults](figures/figure_9_contamination_breakdown.png)
+*Figure 9: Empirical benchmark contamination under injected infrastructure faults (2,160 executions). Panel (a) shows contamination rates across six native benchmark runners vs. guarded execution. Panel (b) breaks down contamination across the three fault families, highlighting the 130 invalid inclusions that bypass standard exception handling.*
+
 **Denominator Contamination Findings:**
 - **Systemic Score Contamination:** Across the fixed matrix of 700 unresolved non-model faults, native benchmark runners emitted completed numeric scores in **425 cases (60.7% contamination rate)**. Infrastructure aborts were silently tallied as model capability failures.
 - **Total Contamination in ASB, AgentHarm, and ToolSandbox:** In ASB, AgentHarm, and ToolSandbox, **100% of unresolved non-model faults (125 of 125)** improperly entered the score denominator. Their exception wrappers swallowed the faults and converted them into zero task scores.
@@ -235,11 +243,40 @@ Across the 2,160 executions, 700 unresolved non-model faults were delivered to e
 
 ## 5. The `evalfault` Guard and Stage-Aware Accounting
 
-### 5.1 Guard Architecture (RQ5)
-To prevent infrastructure and transport failures from corrupting benchmark scores, we introduce `evalfault`, an open-source, non-invasive provenance guard layer. `evalfault` decouples agent execution into three strictly bounded lifecycle stages:
+### 5.1 Guard Architecture and Lifecycle Interception (RQ5)
+To prevent infrastructure and transport failures from corrupting benchmark scores, we introduce `evalfault`, an open-source, non-invasive provenance guard layer. As illustrated in Figure 8, `evalfault` decouples agent execution into three strictly bounded lifecycle stages:
 1. **Provider Stage:** Validates network transport, HTTP response status codes, payload schema integrity, and model identity at the client boundary. It ensures that responses with status 200 OK that contain malformed payloads or empty choices are intercepted before reaching the agent logic.
 2. **Harness Stage:** Tracks environment state transitions, tool execution deadlines, and sandbox invariants.
 3. **Evaluator Stage:** Verifies judge availability, deterministic predicate completion, and token budget accounting.
+
+![Figure 8: The evalfault 3-stage provenance guard architecture](figures/figure_8_evalfault_architecture.png)
+*Figure 8: The evalfault 3-stage provenance guard architecture. Decoupling provider, harness, and evaluator lifecycles intercepts transport drops, rate limits, and payload schema malformations before they corrupt benchmark denominators.*
+
+```text
+Algorithm 1: Stage-Aware Provenance Accounting in evalfault
+Input:  Attempt stream A = {(e_1, tau_1), ..., (e_k, tau_k)}, Task Predicate P, Schema Validator V
+Output: Validated Benchmark Outcome O in {Scored(s), Quarantined(reason)}
+
+1: Initialize Provider Validity V_prov <- True, Recovery Flag R <- False
+2: for each attempt (e_j, tau_j) in A do
+3:     if e_j.status != 200 or e_j.transport_error != None then
+4:         Mark transient failure; V_prov <- False
+5:     else if V(e_j.payload) == Invalid or e_j.choices == empty then
+6:         Mark semantic payload defect; V_prov <- False  [Catches 130 non-exception defects]
+7:     else
+8:         V_prov <- True
+9:         if previous attempt failed then
+10:            R <- True  [Valid multi-turn recovery]
+11:        end if
+12:    end if
+13: end for
+14: if V_prov == False then
+15:    return Quarantined(InfrastructureFault)  [Exclude from denominator]
+16: else
+17:    Evaluate Task Predicate s <- P(EnvironmentState)
+18:    return Scored(s)  [Eligible numeric outcome]
+19: end if
+```
 
 ### 5.2 Controlled Interception and the Exception-Only Baseline (RQ5)
 In the guarded arm of the 2,160 controlled boundary executions:
@@ -247,9 +284,13 @@ In the guarded arm of the 2,160 controlled boundary executions:
 - **Preservation of Clean Controls:** All 60 clean control executions were preserved intact without false exclusions.
 - **Preservation of Valid Recoveries:** In fail-once conditions where transient faults were followed by a successful retry, all 320 valid recoveries were correctly retained.
 
-**Ablation: Why Exception-Only Wrappers Fail:**
-A common objection is that provenance tracking is superfluous because a simple `try/catch` wrapper around API calls suffices. To test this hypothesis, we evaluated an **Exception-Only baseline** that traps standard client-level exceptions but performs no semantic payload or schema validation.
+| Accounting Policy | Contaminated Inclusions | Leaked Faults | Interception Rate |
+| :--- | :--- | :--- | :--- |
+| Native Benchmark Runners | 425 / 700 | 425 | 39.3% |
+| Exception-Only Wrapper | 130 / 700 | 130 | 81.4% |
+| **Stage-Aware `evalfault`** | **0 / 700** | **0** | **100.0%** |
 
+**Ablation: Why Exception-Only Wrappers Fail:**
 In the controlled boundary study, **130 of the 425 invalid inclusions bypassed standard exception handling**. When an upstream provider returns an HTTP 200 status code but provides an empty choices array, truncated JSON, or mismatched model metadata, standard client libraries do not raise an exception. The exception-only wrapper treats the returned object as a successful API response, passing the corrupted output into the agent harness where it is tallied as a model failure. `evalfault`'s stage-aware schema validation intercepts these payload defects, proving that structural provenance is necessary.
 
 ### 5.3 Synthetic Validation on 450 Disjoint Cases (RQ6)
@@ -277,6 +318,18 @@ To observe provenance dynamics under realistic, unscripted production conditions
 
 **Methodological Rationale for Routed Stress Endpoints:**
 We deliberately targeted high-stress, dynamically routed provider endpoints for this pilot. Unlike dedicated enterprise capacity, routed shared endpoints experience authentic multi-tenant capacity shedding, aggressive HTTP 429 rate limiting, and intermittent gateway disconnects. This environment serves as an intentional real-world stress testbed to evaluate whether `evalfault`'s provenance boundaries hold under severe provider unreliability.
+
+| Live Execution Metric | Trajectory Count | API Request Count |
+| :--- | ---: | ---: |
+| Total Attempted Trajectories | 50 | 129 |
+| Reference Valid Trajectories | 19 | 64 |
+| Reference Invalid Trajectories | 31 | 65 |
+| *Breakdown of 31 Intercepted Faults:* | | |
+| -- HTTP 429 Rate Limits / Capacity Shedding | 18 | 39 |
+| -- HTTP 502 / 503 Gateway Dropouts | 9 | 18 |
+| -- Premature Socket Teardowns / Timeouts | 4 | 8 |
+| **Native Score Contamination** | **0 / 31 (0.0%)** | -- |
+| **Guarded Score Contamination** | **0 / 31 (0.0%)** | -- |
 
 An independent audit of raw network traces labeled 19 trajectories as valid and 31 as invalid (due to capacity shedding, HTTP 429 rate limits, and gateway drops). Under this bounded setup, all 31 invalid runs halted cleanly before reaching AgentDojo's numeric aggregation function. Consequently, zero invalid runs contaminated the live pilot scores. This honest negative result confirms that live score distortion depends on specific harness exception handling, underscoring the necessity of systematic fault-injection testing.
 

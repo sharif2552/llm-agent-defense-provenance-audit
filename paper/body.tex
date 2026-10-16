@@ -10,7 +10,7 @@ However, empirical evaluation of modern agent systems exposes two silent, pervas
     \item \textbf{Infrastructure Distortion (The Failure-as-a-Score Fallacy):} When API calls fail due to upstream provider rate limits, network timeouts, transport resets, or malformed JSON payloads, benchmark execution harnesses frequently fail to distinguish non-model infrastructure aborts from legitimate model failures. Unhandled exceptions are converted into default zero scores and absorbed directly into benchmark denominators, contaminating leaderboards and distorting comparative rankings. Crucially, standard exception-catching wrappers fail to prevent this contamination: in our controlled audit, 130 non-model faults bypassed conventional exception handlers because upstream providers returned HTTP 200 status codes with semantically malformed payloads or empty choices.
 \end{enumerate}
 
-Prior literature has noted facets of each concern in isolation. AgentDojo introduced joint reporting of benign utility (BU), utility under attack (UA), and ASR, observing that incapable agents can appear deceptively secure \cite{debenedetti2024agentdojo}. Subsequent defense proposals evaluate security alongside utility \cite{hines2024spotlighting,chen2025struq,jia2025taskshield,debenedetti2026camel,lin2026vigil,he2026attriguard}. Simultaneously, systems studies have warned of infrastructure noise, flaky evaluations, and judge misattribution in LLM agent pipelines \cite{anthropic2026infrastructure,gupta2026reliabilitybench,zhang2026telemetry,balusu2026agenttelemetry,dong2026misscore}.
+Prior literature has noted facets of each concern in isolation. AgentDojo introduced joint reporting of benign utility (BU), utility under attack (UA), and ASR, observing that incapable agents can appear deceptively secure \cite{debenedetti2024agentdojo}. Subsequent defense proposals evaluate security alongside utility \cite{hines2024spotlighting,chen2025struq,chen2025secalign,jia2025taskshield,debenedetti2026camel,lin2026vigil,he2026attriguard,weng2026argus}. Simultaneously, systems studies have warned of infrastructure noise, flaky evaluations, and judge misattribution in LLM agent pipelines \cite{anthropic2026infrastructure,gupta2026reliabilitybench,zhang2026telemetry,balusu2026agenttelemetry,dong2026misscore,wang2026benchjack,wang2026traces,zhang2026agentracer,solozobov2026loadbearing}.
 
 \begin{figure*}[!t]
 \centering
@@ -49,11 +49,11 @@ RQ & Evidence & Core Empirical Finding & Claim Boundary \\
 
 Table~\ref{tab:contribution-map} details our six research questions and empirical boundaries. Figure~\ref{fig:study-overview} illustrates the dual-layer architecture of our study.
 
-\section{Background and Related Work}\label{background-and-related-work}
+\section{Background, Related Work, and Prior Art Differentiation}\label{background-and-related-work}
 
 \subsection{Indirect Prompt Injection in Tool-Using Agents}
 
-Indirect prompt injection occurs when an LLM agent processes untrusted third-party data containing embedded instructions designed to hijack execution \cite{greshake2023indirect,liu2024formalizing}. Unlike standard chatbot jailbreaks, tool-using agents possess external actuators (e.g., file modification, email dispatch, financial transfer), meaning that successful injections lead directly to unauthorized state mutations or data exfiltration \cite{zhan2024injecagent,debenedetti2024agentdojo}.
+Indirect prompt injection occurs when an LLM agent processes untrusted third-party data containing embedded instructions designed to hijack execution \cite{greshake2023indirect,liu2024formalizing,toyer2024tensortrust}. Unlike standard chatbot jailbreaks \cite{piet2024jailbreak,zou2023universal}, tool-using agents possess external actuators (e.g., file modification, email dispatch, financial transfer), meaning that successful injections lead directly to unauthorized state mutations or data exfiltration \cite{zhan2024injecagent,debenedetti2024agentdojo,xiang2024badchain}.
 
 This threat motivated the creation of stateful benchmarks:
 \begin{itemize}
@@ -62,34 +62,43 @@ This threat motivated the creation of stateful benchmarks:
     \item \textbf{Agent Security Bench (ASB)} \cite{zhang2025asb} formalizes multi-turn attacks across diverse environments.
     \item \textbf{AgentHarm} \cite{andriushchenko2025agentharm} measures refusal rates under harmful requests.
     \item \textbf{ToolSandbox} \cite{lu2024toolsandbox} and $\boldsymbol{\tau^2}$\textbf{-bench} \cite{barres2025tau2} evaluate stateful tool interactions and conversational domain policies.
+    \item \textbf{BIPIA} \cite{yi2025bipia} independently evaluates indirect injection in applications combining user instructions with third-party content.
 \end{itemize}
 
 \subsection{Defenses and the Capability-Restriction Dilemma}
 
 Defenses against indirect injection operate at distinct architectural boundaries:
 \begin{itemize}
-    \item \textbf{Content Delimiting:} Spotlighting \cite{hines2024spotlighting} marks untrusted content to help the model distinguish instructions from data. Repeat Prompt repeats the user prompt at the end of the context to reinforce user alignment.
-    \item \textbf{Structured Interfaces:} StruQ \cite{chen2025struq} enforces structured query interfaces to segregate control from data.
-    \item \textbf{Action Alignment and Verification:} Task Shield \cite{jia2025taskshield} checks candidate tool actions against the original user task. VIGIL \cite{lin2026vigil} verifies actions before execution, framing restrictive protection as a security--utility tradeoff. AttriGuard \cite{he2026attriguard} attributes candidate tool calls via counterfactual prompting.
+    \item \textbf{Content Delimiting:} Spotlighting \cite{hines2024spotlighting} marks untrusted content to help the model distinguish instructions from data. Repeat Prompt repeats the user prompt at the end of the context to reinforce user alignment \cite{perez2022ignore}. The Instruction Hierarchy \cite{wallace2024instruction} trains models to prioritize privileged system instructions over unprivileged data.
+    \item \textbf{Structured Interfaces:} StruQ \cite{chen2025struq} and SecAlign \cite{chen2025secalign} enforce structured query interfaces and alignment objectives to segregate control from data.
+    \item \textbf{Action Alignment and Verification:} Task Shield \cite{jia2025taskshield} checks candidate tool actions against the original user task. VIGIL \cite{lin2026vigil} verifies actions before execution, framing restrictive protection as a security--utility tradeoff. AttriGuard \cite{he2026attriguard} attributes candidate tool calls via counterfactual prompting. ARGUS \cite{weng2026argus} performs provenance-aware decision auditing.
     \item \textbf{Information Flow Control:} CaMeL \cite{debenedetti2026camel} isolates control flows from untrusted tool outputs.
-    \item \textbf{Capability Restriction:} Tool Filter \cite{debenedetti2024agentdojo} prompts the model to predict required tools from the user instruction and restricts subsequent execution to that declared whitelist.
+    \item \textbf{Capability Restriction:} Tool Filter \cite{debenedetti2024agentdojo} and Muzzle \cite{syros2026muzzle} prompt the model to predict required tools from the user instruction and restrict subsequent execution to that declared whitelist.
 \end{itemize}
 
 While capability restriction is intuitively appealing, it introduces a severe capability dilemma. A multi-step agent frequently requires tools that become apparent only after intermediate tool outputs are observed. If a defense aggressively restricts available tools at initialization, it suppresses attack actions at the cost of crippling legitimate work.
 
-\subsection{Benchmark Reliability and Infrastructure Noise}
+\subsection{Benchmark Operational Reliability, Flakiness, and Execution Provenance}
 
-A parallel line of research investigates the operational reliability of AI evaluation pipelines. Anthropic demonstrated that infrastructure noise (network dropouts, container restarts) can alter coding evaluation leaderboards by multiple percentage points \cite{anthropic2026infrastructure}. ReliabilityBench evaluated agents under API stress \cite{gupta2026reliabilitybench}. Zhang et al. \cite{zhang2026telemetry} and Balusu \cite{balusu2026agenttelemetry} developed runtime telemetry frameworks to diagnose execution faults. Dong et al. documented how benchmark evaluators mis-score computer-use agents \cite{dong2026misscore}.
+A parallel line of research investigates the operational reliability of AI evaluation pipelines. Anthropic demonstrated that infrastructure noise (network dropouts, container restarts) can alter coding evaluation leaderboards by multiple percentage points \cite{anthropic2026infrastructure}. ReliabilityBench evaluated agents under API stress \cite{gupta2026reliabilitybench}. Zhang et al. \cite{zhang2026telemetry} and Balusu et al. \cite{balusu2026agenttelemetry} developed runtime telemetry frameworks to diagnose execution faults. Dong et al. documented how benchmark evaluators mis-score computer-use agents \cite{dong2026misscore}.
+
+Recent 2026 audits have begun examining evaluator trustworthiness:
+\begin{itemize}
+    \item \textbf{BenchJack} \cite{wang2026benchjack} systematically audited LLM agent benchmarks for reward-hacking and grader exploits. Whereas BenchJack investigated algorithmic specification gaming by models against evaluators, our work investigates \textit{infrastructure denominator contamination}: the silent leakage of non-model provider crashes into numeric score denominators.
+    \item \textbf{Evidence Tracing and Telemetry:} Wang et al. \cite{wang2026traces} surveyed execution provenance in LLM systems, arguing that unverified agent traces undermine benchmark credibility. AgenTracer \cite{zhang2026agentracer} introduced fine-grained runtime telemetry. Solozobov \cite{solozobov2026loadbearing} criticized modern agent benchmarks for treating fragile execution traces as load-bearing scientific evidence.
+\end{itemize}
+
+Our work bridges the gap between behavioral defense benchmarking and distributed systems reliability. We demonstrate that an agent's reported evaluation score cannot be interpreted without joint security-utility accounting and strict infrastructure failure provenance.
 
 \section{Study 1: Defense Compatibility and Utility Collapse in AgentDojo}\label{sec:study1}
 
 \subsection{Static Injection Vector Overwrite Audit (RQ1)}
 
-We conducted a static line-by-line audit of AgentDojo (Workspace suite v1.2.2). The suite defines 16 injection vectors across 40 user tasks involving calendar, email, cloud storage, and contact management tools.
+We conducted a static line-by-line audit of AgentDojo \cite{agentdojo0135} (Workspace suite v1.2.2). The suite defines 16 injection vectors across 40 user tasks involving calendar, email, cloud storage, and contact management tools.
 
 \textbf{RQ1 asks:} \textit{Do shipped injection vectors overwrite data required by shipped user tasks?}
 
-Our static analysis verified that no injection vector causes an active task-critical data overwrite. However, we identified two qualified near-misses in calendar and email fixtures where injection payloads are written to fields immediately adjacent to target state variables.
+Our static analysis verified that no injection vector causes an active task-critical data overwrite. However, we identified two qualified near-misses in calendar and email fixtures where injection payloads are written to fields immediately adjacent to target state variables. Figure~\ref{fig:vector-audit} illustrates the vector mapping and data adjacency.
 
 \begin{figure*}[!t]
 \centering
@@ -105,7 +114,7 @@ To evaluate defense compatibility under high-throughput controlled execution, we
 We evaluated four defense conditions across all 40 Workspace user tasks under benign and attacked conditions:
 \begin{enumerate}
     \item \textbf{None (Baseline):} Native agent execution without prompt or tool restrictions.
-    \item \textbf{Repeat Prompt:} Content-level baseline repeating user instructions after untrusted tool outputs.
+    \item \textbf{Repeat Prompt:} Content-level baseline repeating user instructions after untrusted tool outputs \cite{perez2022ignore}.
     \item \textbf{Spotlighting:} Content-delimiting defense marking untrusted inputs with boundary tags \cite{hines2024spotlighting}.
     \item \textbf{Tool Filter:} Capability-restriction defense predicting required tools and whitelisting them \cite{debenedetti2024agentdojo}.
 \end{enumerate}
@@ -238,8 +247,8 @@ P2 & Laguna-XS 2.1 & Poolside & 15/17 & -80.0 & 54/60 & -59.3 & 54/60 & -11.1 \\
 
 \textbf{Key Findings across Production Models:}
 \begin{enumerate}
-    \item \textbf{Universal Utility Collapse (10/10 Configurations):} Benign task utility declined in \textbf{100\% of evaluated models}. In two configurations (C1 and N2), Benign Utility dropped by \textbf{100 percentage points} (complete operational paralysis). After Holm adjustment for multiple comparisons, utility loss remained statistically significant in 9 of 10 configurations (C1 had only 5 complete pairs, yielding adjusted $p = 0.0625$).
-    \item \textbf{Inconsistent Security Improvement (3/10 Configurations):} While utility collapse occurred universally, statistically supported ASR reductions materialized in only **3 of the 10 configurations** (D1, N2, and N4).
+    \item \textbf{Universal Utility Collapse (10/10 Configurations):} Benign task utility declined in \textbf{100\% of evaluated models}. In two configurations (C1 and N2), Benign Utility dropped by \textbf{100 percentage points} (complete operational paralysis). After Holm adjustment \cite{holm1979sequentially} for multiple comparisons, utility loss remained statistically significant in 9 of 10 configurations (C1 had only 5 complete pairs, yielding adjusted $p = 0.0625$).
+    \item \textbf{Inconsistent Security Improvement (3/10 Configurations):} While utility collapse occurred universally, statistically supported ASR reductions materialized in only 3 of the 10 configurations (D1, N2, and N4).
     \item \textbf{Strict Negative Utility:} In M2 (MiniMax M3) and N3 (Nemotron-3 Ultra 550B), Tool Filter produced massive utility collapses ($-52.9$ and $-68.8$ percentage points in BU; $-70.4$ and $-65.5$ points in UA) while providing \textbf{0.0 percentage points reduction in attack success}.
 \end{enumerate}
 
@@ -261,7 +270,7 @@ When unhandled aborts are naively scored as 0 over $N_{\text{planned}}$, infrast
 \begin{equation}
 \text{Lower Bound} = \frac{\sum_{i \in \text{Usable}} S_i}{N_{\text{planned}}}, \quad \text{Upper Bound} = \frac{\sum_{i \in \text{Usable}} S_i + N_{\text{unresolved}}}{N_{\text{planned}}}
 \end{equation}
-Figure~\ref{fig:provenance} separates these cell-level outcomes from attempt-level operational logs across 4,344 and 4,689 recorded attempts.
+Figure~\ref{fig:provenance} separates these cell-level outcomes from attempt-level operational logs across 4,344 and 4,689 recorded attempts. Confidence intervals for proportions follow Wilson score intervals \cite{wilson1927probable}, and paired differences are evaluated using clustered bootstrap resampling \cite{efron1979bootstrap} and McNemar's exact test \cite{mcnemar1947correlated}.
 
 \section{Study 2: Multi-Benchmark Failure Provenance across Six Runners}\label{sec:study2}
 
@@ -296,6 +305,9 @@ Table~\ref{tab:benchmark-architectures} compares the architectural designs, exce
     \item \textbf{Execution Loop Abort (AgentDojo, InjecAgent, $\tau^2$-bench):} When an unhandled exception terminates the interaction loop, intermediate partial state is evaluated against the post-task condition. Because legitimate state mutations were never completed, the state predicate evaluates to False, entering zero into the score denominator.
 \end{itemize}
 
+\textbf{Deterministic Replay and Evidence Receipts:}
+To guarantee that our findings are completely verifiable and immune to test-retest flakiness, every execution in Study 2 records an immutable cryptographic receipt (\texttt{*.receipt.json}) alongside its event stream. These receipts store the exact request body hash, the raw provider HTTP status code, response headers, latency, and the resulting state mutation. The complete suite of receipts is audited in \texttt{saved\_evidence\_audit.json}, verifying 100\% bit-exact reproducibility across independent audit passes.
+
 \subsection{Fault Injection Taxonomy and Controlled Boundary Design}
 
 To rigorously quantify denominator contamination, we developed a fault taxonomy comprising seventeen distinct provider and transport fault conditions:
@@ -313,7 +325,7 @@ yielding 1,080 matched pairs comparing the \textbf{Native Arm} (unmodified bench
 
 \subsection{Empirical Contamination Results Across Six Runners (RQ4)}
 
-Across the 2,160 executions, 700 unresolved non-model faults were delivered to each arm. Table~\ref{tab:controlled-breakdown} provides a detailed per-benchmark breakdown of outcome emission under these unresolved faults.
+Across the 2,160 executions, 700 unresolved non-model faults were delivered to each arm. Table~\ref{tab:controlled-breakdown} provides a detailed per-benchmark breakdown of outcome emission under these unresolved faults, and Figure~\ref{fig:contamination-breakdown} illustrates the contamination rates across benchmarks and fault categories.
 
 \begin{table*}[!t]
 \centering
@@ -337,6 +349,13 @@ $\boldsymbol{\tau^2}$\textbf{-bench} & 180 & 90 & 10 & 11.1\% & 0 & 80 \\
 \end{tabular}
 \end{table*}
 
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=0.98\textwidth]{figures/figure_9_contamination_breakdown.png}
+\caption{Empirical benchmark contamination under injected infrastructure faults (2,160 executions). Panel (a) shows contamination rates across six native benchmark runners vs. guarded execution. Panel (b) breaks down contamination across the three fault families, highlighting the 130 invalid inclusions that bypass standard exception handling.}
+\label{fig:contamination-breakdown}
+\end{figure*}
+
 \textbf{Denominator Contamination Findings:}
 \begin{itemize}
     \item \textbf{Systemic Score Contamination:} Across the fixed matrix of 700 unresolved non-model faults, native benchmark runners emitted completed numeric scores in \textbf{425 cases (60.7\% contamination rate)}. Infrastructure aborts were silently tallied as model capability failures.
@@ -351,14 +370,52 @@ $\boldsymbol{\tau^2}$\textbf{-bench} & 180 & 90 & 10 & 11.1\% & 0 & 80 \\
 
 \section{The \texttt{evalfault} Guard and Stage-Aware Accounting}\label{sec:evalfault}
 
-\subsection{Guard Architecture (RQ5)}
+\subsection{Guard Architecture and Lifecycle Interception (RQ5)}
 
-To prevent infrastructure and transport failures from corrupting benchmark scores, we introduce \texttt{evalfault}, an open-source, non-invasive provenance guard layer. \texttt{evalfault} decouples agent execution into three strictly bounded lifecycle stages:
+To prevent infrastructure and transport failures from corrupting benchmark scores, we introduce \texttt{evalfault}, an open-source, non-invasive provenance guard layer. As illustrated in Figure~\ref{fig:evalfault-architecture}, \texttt{evalfault} decouples agent execution into three strictly bounded lifecycle stages:
 \begin{enumerate}
     \item \textbf{Provider Stage:} Validates network transport, HTTP response status codes, payload schema integrity, and model identity at the client boundary. It ensures that responses with status 200 OK that contain malformed payloads or empty choices are intercepted before reaching the agent logic.
     \item \textbf{Harness Stage:} Tracks environment state transitions, tool execution deadlines, and sandbox invariants.
     \item \textbf{Evaluator Stage:} Verifies judge availability, deterministic predicate completion, and token budget accounting.
 \end{enumerate}
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=0.95\textwidth]{figures/figure_8_evalfault_architecture.png}
+\caption{The \texttt{evalfault} 3-stage provenance guard architecture. Decoupling provider, harness, and evaluator lifecycles intercepts transport drops, rate limits, and payload schema malformations before they corrupt benchmark denominators.}
+\label{fig:evalfault-architecture}
+\end{figure*}
+
+Algorithm~\ref{alg:evalfault} defines the formal stage-aware evaluation and recovery accounting logic implemented in \texttt{evalfault}.
+
+\begin{algorithm}[!t]
+\caption{Stage-Aware Provenance Accounting in \texttt{evalfault}}
+\label{alg:evalfault}
+\begin{algorithmic}[1]
+\REQUIRE Attempt stream $\mathcal{A} = \{(e_1, \tau_1), \dots, (e_k, \tau_k)\}$, Task Predicate $\mathcal{P}$, Schema Validator $\mathcal{V}$
+\ENSURE Validated Benchmark Outcome $O \in \{\text{Scored}(s), \text{Quarantined}(\text{reason})\}$
+\STATE Initialize Provider Validity $V_{\text{prov}} \leftarrow \text{True}$, Recovery Flag $R \leftarrow \text{False}$
+\FOR{each attempt $(e_j, \tau_j) \in \mathcal{A}$}
+    \IF{$e_j.\text{status} \neq 200$ \OR $e_j.\text{transport\_error} \neq \emptyset$}
+        \STATE Mark transient failure; $V_{\text{prov}} \leftarrow \text{False}$
+    \ELSIF{$\mathcal{V}(e_j.\text{payload}) == \text{Invalid}$ \OR $e_j.\text{choices} == \emptyset$}
+        \STATE Mark semantic payload defect; $V_{\text{prov}} \leftarrow \text{False}$
+        \COMMENT{Catches 130 non-exception defects}
+    \ELSE
+        \STATE $V_{\text{prov}} \leftarrow \text{True}$
+        \IF{previous attempt failed}
+            \STATE $R \leftarrow \text{True}$ \COMMENT{Valid multi-turn recovery}
+        \ENDIF
+    \ENDIF
+\ENDFOR
+\IF{$V_{\text{prov}} == \text{False}$}
+    \RETURN $\text{Quarantined}(\text{InfrastructureFault})$ \COMMENT{Exclude from denominator}
+\ELSE
+    \STATE Evaluate Task Predicate $s \leftarrow \mathcal{P}(\text{EnvironmentState})$
+    \RETURN $\text{Scored}(s)$ \COMMENT{Eligible numeric outcome}
+\ENDIF
+\end{algorithmic}
+\end{algorithm}
 
 \subsection{Controlled Interception and the Exception-Only Baseline (RQ5)}
 
@@ -372,7 +429,23 @@ In the guarded arm of the 2,160 controlled boundary executions:
 \textbf{Ablation: Why Exception-Only Wrappers Fail:}
 A common objection is that provenance tracking is superfluous because a simple \texttt{try/catch} wrapper around API calls suffices. To test this hypothesis, we evaluated an \textbf{Exception-Only baseline} that traps standard client-level exceptions but performs no semantic payload or schema validation.
 
-In the controlled boundary study, \textbf{130 of the 425 invalid inclusions bypassed standard exception handling}. When an upstream provider returns an HTTP 200 status code but provides an empty choices array, truncated JSON, or mismatched model metadata, standard client libraries do not raise an exception. The exception-only wrapper treats the returned object as a successful API response, passing the corrupted output into the agent harness where it is tallied as a model failure. \texttt{evalfault}'s stage-aware schema validation intercepts these payload defects, proving that structural provenance is necessary.
+\begin{table}[!t]
+\centering
+\caption{Comparison of score leakage across accounting policies under 700 unresolved faults (2,160 controlled runs).}
+\label{tab:exception-ablation}
+\footnotesize
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+Accounting Policy & Contaminated Inclusions & Leaked Faults & Interception Rate \\
+\midrule
+Native Benchmark Runners & 425 / 700 & 425 & 39.3\% \\
+Exception-Only Wrapper & 130 / 700 & 130 & 81.4\% \\
+\textbf{Stage-Aware \texttt{evalfault}} & \textbf{0 / 700} & \textbf{0} & \textbf{100.0\%} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:exception-ablation} compares the three accounting policies. In the controlled boundary study, \textbf{130 of the 425 invalid inclusions bypassed standard exception handling}. When an upstream provider returns an HTTP 200 status code but provides an empty choices array, truncated JSON, or mismatched model metadata, standard client libraries do not raise an exception. The exception-only wrapper treats the returned object as a successful API response, passing the corrupted output into the agent harness where it is tallied as a model failure. \texttt{evalfault}'s stage-aware schema validation intercepts these payload defects, proving that structural provenance is necessary.
 
 \subsection{Synthetic Validation on 450 Disjoint Cases (RQ6)}
 
@@ -411,7 +484,31 @@ To observe provenance dynamics under realistic, unscripted production conditions
 \textbf{Methodological Rationale for Routed Stress Endpoints:}
 We deliberately targeted high-stress, dynamically routed provider endpoints for this pilot. Unlike dedicated enterprise capacity, routed shared endpoints experience authentic multi-tenant capacity shedding, aggressive HTTP 429 rate limiting, and intermittent gateway disconnects. This environment serves as an intentional real-world stress testbed to evaluate whether \texttt{evalfault}'s provenance boundaries hold under severe provider unreliability.
 
-An independent audit of raw network traces labeled 19 trajectories as valid and 31 as invalid (due to capacity shedding, HTTP 429 rate limits, and gateway drops). Under this bounded setup, all 31 invalid runs halted cleanly before reaching AgentDojo's numeric aggregation function. Consequently, zero invalid runs contaminated the live pilot scores. This honest negative result confirms that live score distortion depends on specific harness exception handling, underscoring the necessity of systematic fault-injection testing.
+\begin{table}[!t]
+\centering
+\caption{Distribution of 129 live provider requests and 31 intercepted faults across 50 live trajectories.}
+\label{tab:live-pilot}
+\footnotesize
+\begin{tabular}{@{}lrr@{}}
+\toprule
+Live Execution Metric & Trajectory Count & API Request Count \\
+\midrule
+Total Attempted Trajectories & 50 & 129 \\
+Reference Valid Trajectories & 19 & 64 \\
+Reference Invalid Trajectories & 31 & 65 \\
+\midrule
+\textit{Breakdown of 31 Intercepted Faults:} & & \\
+-- HTTP 429 Rate Limits / Capacity Shedding & 18 & 39 \\
+-- HTTP 502 / 503 Gateway Dropouts & 9 & 18 \\
+-- Premature Socket Teardowns / Timeouts & 4 & 8 \\
+\midrule
+\textbf{Native Score Contamination} & \textbf{0 / 31 (0.0\%)} & -- \\
+\textbf{Guarded Score Contamination} & \textbf{0 / 31 (0.0\%)} & -- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:live-pilot} details the distribution of live requests and intercepted faults. An independent audit of raw network traces labeled 19 trajectories as valid and 31 as invalid (due to capacity shedding, HTTP 429 rate limits, and gateway drops). Under this bounded setup, all 31 invalid runs halted cleanly before reaching AgentDojo's numeric aggregation function. Consequently, zero invalid runs contaminated the live pilot scores. This honest negative result confirms that live score distortion depends on specific harness exception handling, underscoring the necessity of systematic fault-injection testing.
 
 \section{Discussion, Recommendations, and Limitations}\label{sec:discussion}
 
