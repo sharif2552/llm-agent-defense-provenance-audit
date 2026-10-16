@@ -36,13 +36,21 @@ This repository provides the complete, self-contained replication bundle, raw at
 ├── reproduce.sh                   # One-step reproduction runner
 ├── run_audit.py                   # Two-stage meta-testing and Level-0 recomputation engine
 ├── SHA256SUMS                     # Cryptographic digests of all data and code artifacts
+├── literature_novelty/            # Novelty validation, literature gap matrices & taxonomy
+│   ├── 00_scope.md                # Boundary definition and measurement validity scope
+│   ├── 05_novelty_validation.csv  # Granular novelty matrix vs 35 related papers
+│   ├── 05_taxonomy.md             # Formal 3-tier failure taxonomy
+│   ├── 07_research_questions.md   # RQ1-RQ5 mapping to empirical evaluations
+│   ├── 08_threat_model.md         # Adversarial threat model and assumptions
+│   ├── 09_baselines.csv           # Baseline comparative dimensions across literature
+│   └── gap_matrix.csv             # Literature gap and differentiator matrix
 ├── paper/                         # Publication sources
 │   ├── main.tex                   # IEEEtran root LaTeX document
 │   ├── body.tex                   # Two-column manuscript body
 │   ├── references.bib             # Bibliography (39 citations)
 │   ├── IEEEtran.cls               # IEEE document class
 │   ├── manuscript.md              # Master readable Markdown manuscript
-│   └── figures/                   # High-resolution publication figures (Figures 1-7)
+│   └── figures/                   # High-resolution publication figures (Figures 1-9)
 └── data/                          # Audited Level-0 event ledgers
     ├── study1_groq/               # Groq balanced panel (v5.1, 4,344 attempt rows)
     ├── study1_openrouter/         # OpenRouter multi-model cohort (v5.3, 4,689 attempt rows)
