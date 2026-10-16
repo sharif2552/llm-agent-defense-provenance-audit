@@ -1,13 +1,13 @@
 % !TeX root = main.tex
 \section{Introduction}\label{introduction}
 
-\IEEEPARstart{A}{n} evaluation score in an autonomous LLM agent benchmark is the final output of an extensive software pipeline. For a tool-using agent, that pipeline encompasses an orchestration SDK, external tool execution environments, simulated human users, state initialization routines, network transports, automated evaluators, and aggregation functions \cite{debenedetti2024agentdojo,zhan2024injecagent}. In both capability and safety benchmarking, a reported score of zero is universally interpreted as a model execution failure: the agent attempted a task and failed to complete it, or succumbed to an adversarial prompt injection.
+\IEEEPARstart{A}{n} evaluation score in an autonomous Large Language Model (LLM) agent benchmark is the final output of an extensive, multi-layered software pipeline. For a tool-using agent, that pipeline encompasses an orchestration SDK, external tool execution environments, simulated human users, state initialization routines, network transports, automated evaluators, and aggregation functions \cite{debenedetti2024agentdojo,zhan2024injecagent}. In both capability and safety benchmarking, a reported score of zero is universally interpreted as a model execution failure: the agent attempted a task and failed to complete it, or succumbed to an adversarial prompt injection.
 
 However, empirical evaluation of modern agent systems exposes two silent, pervasive failure modes that severely distort benchmark conclusions:
 
 \begin{enumerate}
-    \item \textbf{Behavioral Distortion (The Utility Collapse Illusion):} In security evaluations, defenses designed to neutralize indirect prompt injection often achieve apparent protection by disabling the agent's legitimate capabilities. In stateful environments, a capability-restriction defense such as Tool Filter can reduce the targeted Attack Success Rate (ASR) to zero simply because it prevents the agent from invoking the tools necessary to complete any action. When benchmarks report ASR without strictly paired benign task utility, brittle defenses appear state-of-the-art while rendering agents entirely useless.
-    \item \textbf{Infrastructure Distortion (The Failure-as-a-Score Fallacy):} When API calls fail due to upstream provider rate limits, network timeouts, transport resets, or malformed JSON payloads, benchmark execution harnesses frequently fail to distinguish non-model infrastructure aborts from legitimate model failures. Unhandled exceptions are converted into default zero scores and absorbed directly into benchmark denominators, contaminating leaderboards and distorting comparative rankings.
+    \item \textbf{Behavioral Distortion (The Utility Collapse Illusion):} In security evaluations, defenses designed to neutralize indirect prompt injection often achieve apparent protection by disabling the agent's legitimate capabilities. In stateful environments, a capability-restriction defense such as Tool Filter can reduce the targeted Attack Success Rate (ASR) to zero simply because it prevents the agent from invoking the tools necessary to complete any action. When benchmarks report ASR without strictly paired benign task utility, brittle defenses appear state-of-the-art while rendering agents entirely useless. In contrast, content-delimiting defenses such as Spotlighting \cite{hines2024spotlighting} and Repeat Prompt preserve agent utility while offering measured defensive gains.
+    \item \textbf{Infrastructure Distortion (The Failure-as-a-Score Fallacy):} When API calls fail due to upstream provider rate limits, network timeouts, transport resets, or malformed JSON payloads, benchmark execution harnesses frequently fail to distinguish non-model infrastructure aborts from legitimate model failures. Unhandled exceptions are converted into default zero scores and absorbed directly into benchmark denominators, contaminating leaderboards and distorting comparative rankings. Crucially, standard exception-catching wrappers fail to prevent this contamination: in our controlled audit, 130 non-model faults bypassed conventional exception handlers because upstream providers returned HTTP 200 status codes with semantically malformed payloads or empty choices.
 \end{enumerate}
 
 Prior literature has noted facets of each concern in isolation. AgentDojo introduced joint reporting of benign utility (BU), utility under attack (UA), and ASR, observing that incapable agents can appear deceptively secure \cite{debenedetti2024agentdojo}. Subsequent defense proposals evaluate security alongside utility \cite{hines2024spotlighting,chen2025struq,jia2025taskshield,debenedetti2026camel,lin2026vigil,he2026attriguard}. Simultaneously, systems studies have warned of infrastructure noise, flaky evaluations, and judge misattribution in LLM agent pipelines \cite{anthropic2026infrastructure,gupta2026reliabilitybench,zhang2026telemetry,balusu2026agenttelemetry,dong2026misscore}.
@@ -22,9 +22,9 @@ Prior literature has noted facets of each concern in isolation. AgentDojo introd
 What has remained missing is an integrated, empirical investigation of how behavioral defense degradation and infrastructure fault propagation jointly compromise agent benchmark validity. In this paper, we bridge this gap through a unified, multi-benchmark empirical audit across two complementary layers:
 
 \begin{itemize}
-    \item \textbf{Layer 1: Defense Compatibility Audit in AgentDojo.} We evaluate the shipped Workspace v1.2.2 suite under static vector inspection and dynamic multi-model execution. We test a 1,096-cell balanced Groq panel (879 usable cells) on GPT-OSS-120B and GPT-OSS-20B, followed by an OpenRouter cohort of 1,540 planned cells (1,431 usable cells) across ten model configurations spanning five distinct families (20B to 550B parameters). We demonstrate that Tool Filter collapses benign utility by 84.6 percentage points on GPT-OSS-120B and 57.1 points on GPT-OSS-20B, with utility degradation reproducing across 100\% of evaluated OpenRouter configurations.
-    \item \textbf{Layer 2: Multi-Benchmark Failure Provenance Audit across Six Runners.} We audit six prominent agent benchmark harnesses: AgentDojo \cite{debenedetti2024agentdojo}, InjecAgent \cite{zhan2024injecagent}, Agent Security Bench (ASB) \cite{zhang2025asb}, AgentHarm \cite{andriushchenko2025agentharm}, ToolSandbox \cite{lu2024toolsandbox}, and tau2-bench \cite{barres2025tau2}. Across 2,160 controlled executions spanning seventeen provider fault conditions, native harnesses convert 425 of 700 unresolved non-model faults into completed numeric task failure scores.
-    \item \textbf{The Solution (\texttt{evalfault}) and Verification.} We present \texttt{evalfault}, an open-source, stage-aware provenance guard layer that decouples provider, harness, and evaluator lifecycles. In our controlled study, \texttt{evalfault} eliminates 100\% of invalid score inclusions (zero invalid retained) while preserving all clean controls and valid recoveries. We validate the framework on a disjoint 450-case synthetic validation packet and report an exploratory 50-trajectory live pilot.
+    \item \textbf{Layer 1: Defense Compatibility Audit in AgentDojo.} We evaluate the shipped Workspace suite under static vector inspection and dynamic multi-model execution across 2,636 planned executions (2,310 verified completions). We test a 1,096-cell balanced panel (879 usable cells) on open-weight mixture-of-experts models (\texttt{gpt-oss-120b} and \texttt{gpt-oss-20b}) on Groq LPU hardware, followed by a multi-family cohort of 1,540 planned cells (1,431 usable cells) across ten production model configurations spanning five distinct families (20B to 550B parameters). We demonstrate that Tool Filter collapses benign utility by 84.6 percentage points on GPT-OSS-120B and 57.1 points on GPT-OSS-20B, with utility degradation reproducing across 100\% of evaluated multi-family configurations, whereas content-delimiting defenses preserve task utility.
+    \item \textbf{Layer 2: Multi-Benchmark Failure Provenance Audit across Six Runners.} We audit six prominent agent benchmark harnesses: AgentDojo \cite{debenedetti2024agentdojo}, InjecAgent \cite{zhan2024injecagent}, Agent Security Bench (ASB) \cite{zhang2025asb}, AgentHarm \cite{andriushchenko2025agentharm}, ToolSandbox \cite{lu2024toolsandbox}, and $\tau^2$-bench \cite{barres2025tau2}. Across 2,160 controlled executions spanning seventeen provider fault conditions (1,080 matched pairs), native harnesses convert 425 of 700 unresolved non-model faults into completed numeric task failure scores (60.7\% contamination rate).
+    \item \textbf{The Solution (\texttt{evalfault}) and Verification.} We present \texttt{evalfault}, an open-source, stage-aware provenance guard layer that decouples provider, harness, and evaluator lifecycles. In our controlled study, \texttt{evalfault} eliminates 100\% of invalid score inclusions (zero invalid retained) while preserving all 60 clean controls and 320 valid recoveries. We validate the framework on a disjoint 450-case synthetic validation packet (0 false exclusions) and report an exploratory 50-trajectory live pilot under capacity-shedding stress.
 \end{itemize}
 
 \begin{table*}[!t]
@@ -37,12 +37,12 @@ What has remained missing is an integrated, empirical investigation of how behav
 \toprule
 RQ & Evidence & Core Empirical Finding & Claim Boundary \\
 \midrule
-\textbf{RQ1} & Static audit of 16 injection vectors vs. 40 Workspace tasks & No active task-critical overwrite; two qualified near-misses & Source-level audit of Workspace v1.2.2; not behavioral execution \\
-\textbf{RQ2} & 879 usable Groq runs and 1,431 usable OpenRouter runs & Tool Filter utility loss reproduced across 100\% of model configs & 10 OpenRouter endpoints span 5 families; utility loss is systemic \\
-\textbf{RQ3} & Missingness tracking across Groq (19.6\%) and OpenRouter (7.1\%) & Infrastructure dropouts distort leaderboards unless bounded & Worst-case bounds conditional on observed completion sets \\
+\textbf{RQ1} & Static audit of 16 injection vectors vs. 40 Workspace tasks & No active task-critical overwrite; two qualified near-misses & Source-level audit of Workspace suite; not behavioral execution \\
+\textbf{RQ2} & 879 usable Groq runs and 1,431 usable multi-family runs & Tool Filter utility loss reproduced across 100\% of model configs & 10 production endpoints span 5 families; utility loss is systemic \\
+\textbf{RQ3} & Missingness tracking across Groq (19.6\%) and multi-family (7.1\%) & Infrastructure dropouts distort leaderboards unless bounded & Worst-case bounds conditional on observed completion sets \\
 \textbf{RQ4} & Controlled fault injection across 6 benchmark runners (2,160 runs) & Native runners emit numeric scores in 425/700 unresolved faults & Tests specific native execution paths; not full multi-turn CLIs \\
 \textbf{RQ5} & Interception evaluation of \texttt{evalfault} guard layer & Eliminates all 425 invalid inclusions (0 retained); 100\% recoveries kept & SDK-level passive instrumentation; isolates accounting mechanism \\
-\textbf{RQ6} & 450-case synthetic transfer and 50-trajectory live pilot & Zero false exclusions on valid cases; 0/31 live invalid runs scored & Finite synthetic packet; live pilot bounded to free endpoints \\
+\textbf{RQ6} & 450-case synthetic transfer and 50-trajectory live pilot & Zero false exclusions on valid cases; 0/31 live invalid runs scored & Finite synthetic packet; live pilot bounded to routed stress endpoints \\
 \bottomrule
 \end{tabularx}
 \end{table*}
@@ -55,227 +55,324 @@ Table~\ref{tab:contribution-map} details our six research questions and empirica
 
 Indirect prompt injection occurs when an LLM agent processes untrusted third-party data containing embedded instructions designed to hijack execution \cite{greshake2023indirect,liu2024formalizing}. Unlike standard chatbot jailbreaks, tool-using agents possess external actuators (e.g., file modification, email dispatch, financial transfer), meaning that successful injections lead directly to unauthorized state mutations or data exfiltration \cite{zhan2024injecagent,debenedetti2024agentdojo}.
 
-This threat motivated the creation of stateful benchmarks. AgentDojo \cite{debenedetti2024agentdojo} formalized this problem by evaluating agents across four application domains (Workspace, Banking, Travel, Slack) and reporting three complementary metrics: Benign Utility (BU, completion rate without attack), Utility under Attack (UA, completion of legitimate task in the presence of injection), and targeted Attack Success Rate (ASR, execution of attacker goal). InjecAgent \cite{zhan2024injecagent} evaluates 1,054 injection test cases across direct harm and exfiltration. Agent Security Bench (ASB) \cite{zhang2025asb} formalizes multi-turn attacks across diverse environments. AgentHarm \cite{andriushchenko2025agentharm} measures refusal rates under harmful requests. ToolSandbox \cite{lu2024toolsandbox} and tau2-bench \cite{barres2025tau2} evaluate stateful tool interactions and conversational domain policies.
+This threat motivated the creation of stateful benchmarks:
+\begin{itemize}
+    \item \textbf{AgentDojo} \cite{debenedetti2024agentdojo} formalized this problem by evaluating agents across four application domains (Workspace, Banking, Travel, Slack) and reporting three complementary metrics: Benign Utility (BU, completion rate without attack), Utility under Attack (UA, completion of legitimate task in the presence of injection), and targeted Attack Success Rate (ASR, execution of attacker goal).
+    \item \textbf{InjecAgent} \cite{zhan2024injecagent} evaluates 1,054 injection test cases across direct harm and exfiltration.
+    \item \textbf{Agent Security Bench (ASB)} \cite{zhang2025asb} formalizes multi-turn attacks across diverse environments.
+    \item \textbf{AgentHarm} \cite{andriushchenko2025agentharm} measures refusal rates under harmful requests.
+    \item \textbf{ToolSandbox} \cite{lu2024toolsandbox} and $\boldsymbol{\tau^2}$\textbf{-bench} \cite{barres2025tau2} evaluate stateful tool interactions and conversational domain policies.
+\end{itemize}
 
 \subsection{Defenses and the Capability-Restriction Dilemma}
 
 Defenses against indirect injection operate at distinct architectural boundaries:
 \begin{itemize}
-    \item \textbf{Content Delimiting:} Spotlighting \cite{hines2024spotlighting} marks untrusted content to help the model distinguish instructions from data.
+    \item \textbf{Content Delimiting:} Spotlighting \cite{hines2024spotlighting} marks untrusted content to help the model distinguish instructions from data. Repeat Prompt repeats the user prompt at the end of the context to reinforce user alignment.
     \item \textbf{Structured Interfaces:} StruQ \cite{chen2025struq} enforces structured query interfaces to segregate control from data.
-    \item \textbf{Action Alignment:} Task Shield \cite{jia2025taskshield} checks candidate tool actions against the original user task.
+    \item \textbf{Action Alignment and Verification:} Task Shield \cite{jia2025taskshield} checks candidate tool actions against the original user task. VIGIL \cite{lin2026vigil} verifies actions before execution, framing restrictive protection as a security--utility tradeoff. AttriGuard \cite{he2026attriguard} attributes candidate tool calls via counterfactual prompting.
     \item \textbf{Information Flow Control:} CaMeL \cite{debenedetti2026camel} isolates control flows from untrusted tool outputs.
-    \item \textbf{Capability Restriction:} Tool Filter \cite{debenedetti2024agentdojo} prompts the model to predict required tools from the user instruction and restricts execution to that declared subset.
+    \item \textbf{Capability Restriction:} Tool Filter \cite{debenedetti2024agentdojo} prompts the model to predict required tools from the user instruction and restricts subsequent execution to that declared whitelist.
 \end{itemize}
 
-While capability restriction is intuitively appealing, it introduces a severe capability-restriction dilemma. A multi-step agent frequently requires tools that become apparent only after intermediate tool outputs are observed. If a defense aggressively restricts available tools, it suppresses attack actions at the cost of crippling legitimate work. VIGIL \cite{lin2026vigil}, Yu et al. \cite{yu2026toolparsing}, and Khan et al. \cite{khan2026evaluating} have highlighted the security-utility tension on selected subsets. Our study provides the first matched cross-configuration audit across 12 production models and five model families.
+While capability restriction is intuitively appealing, it introduces a severe capability dilemma. A multi-step agent frequently requires tools that become apparent only after intermediate tool outputs are observed. If a defense aggressively restricts available tools at initialization, it suppresses attack actions at the cost of crippling legitimate work.
 
 \subsection{Benchmark Reliability and Infrastructure Noise}
 
-A parallel line of research investigates the operational reliability of AI evaluation pipelines. Anthropic \cite{anthropic2026infrastructure} demonstrated that infrastructure noise (network dropouts, container restarts) can alter coding evaluation leaderboards by multiple percentage points. ReliabilityBench \cite{gupta2026reliabilitybench} evaluated agents under API stress. Zhang et al. \cite{zhang2026telemetry} and Balusu \cite{balusu2026agenttelemetry} developed runtime telemetry frameworks to diagnose execution faults. Dong et al. \cite{dong2026misscore} documented how benchmark evaluators mis-score computer-use agents.
+A parallel line of research investigates the operational reliability of AI evaluation pipelines. Anthropic demonstrated that infrastructure noise (network dropouts, container restarts) can alter coding evaluation leaderboards by multiple percentage points \cite{anthropic2026infrastructure}. ReliabilityBench evaluated agents under API stress \cite{gupta2026reliabilitybench}. Zhang et al. \cite{zhang2026telemetry} and Balusu \cite{balusu2026agenttelemetry} developed runtime telemetry frameworks to diagnose execution faults. Dong et al. documented how benchmark evaluators mis-score computer-use agents \cite{dong2026misscore}.
 
-Despite these insights, existing agent benchmark runners continue to treat missing or crashed runs as numeric zeros in task completion denominators. When infrastructure dropouts are misattributed as model failures, leaderboard validity is compromised.
-
-\section{Study 1: Defense Compatibility and Utility Collapse in AgentDojo}\label{study-1}
+\section{Study 1: Defense Compatibility and Utility Collapse in AgentDojo}\label{sec:study1}
 
 \subsection{Static Injection Vector Overwrite Audit (RQ1)}
 
-We conducted a static line-by-line audit of AgentDojo 0.1.35 Workspace suite v1.2.2. The suite defines 16 injection vectors across 40 user tasks involving calendar, email, cloud storage, and contact management tools.
+We conducted a static line-by-line audit of AgentDojo (Workspace suite v1.2.2). The suite defines 16 injection vectors across 40 user tasks involving calendar, email, cloud storage, and contact management tools.
 
 \textbf{RQ1 asks:} \textit{Do shipped injection vectors overwrite data required by shipped user tasks?}
 
-Our static analysis verified that no injection vector causes an active task-critical data overwrite. However, we identified two qualified near-misses in calendar and email fixtures where injection payloads are written to fields immediately adjacent to target state variables. These near-misses confirm the structural separation of the current benchmark while highlighting the fragility of static fixture design.
-
-\begin{figure}[!t]
-\centering
-\includegraphics[width=0.48\textwidth]{figures/figure_rq1_vector_audit.png}
-\caption{Static injection vector audit across 16 Workspace vectors, mapping target state fixtures and data adjacency.}
-\label{fig:rq1-vector-audit}
-\end{figure}
-
-\subsection{Groq Balanced Panel Evaluation (RQ2)}
-
-To evaluate defense compatibility under high-throughput controlled execution, we constructed a balanced panel of 1,096 planned cells executed on Groq hardware:
-\begin{itemize}
-    \item \textbf{Backbones:} \texttt{openai/gpt-oss-120b} and \texttt{openai/gpt-oss-20b}.
-    \item \textbf{Defenses:} None, Tool Filter, Spotlighting, Repeat Prompt.
-    \item \textbf{Tasks:} 40 Workspace user tasks, executed under benign and attacked conditions.
-\end{itemize}
-
-\begin{figure}[!t]
-\centering
-\includegraphics[width=0.48\textwidth]{figures/figure_2_groq_profiles}
-\caption{Groq balanced panel profiles (v5.1). Benign utility (BU), utility under attack (UA), and attack success rate (ASR) across defenses. Tool Filter collapses BU and UA for both GPT-OSS-120B and GPT-OSS-20B.}
-\label{fig:groq-profiles}
-\end{figure}
-
-Of the 1,096 planned cells, 879 yielded usable complete outcomes, 215 were unresolved due to transient provider rate limits, and 2 were excluded due to ambiguous completions. Figure~\ref{fig:groq-profiles} shows the resulting performance profiles.
-
-On complete matched pairs:
-\begin{itemize}
-    \item \textbf{GPT-OSS-120B:} Tool Filter reduced targeted ASR from 42.1\% to 0.0\%. However, Benign Utility (BU) plummeted by \textbf{84.6 percentage points} (from 88.5\% down to 3.8\%). Utility under attack (UA) dropped by 60.5 percentage points.
-    \item \textbf{GPT-OSS-20B:} Tool Filter reduced ASR from 28.6\% to 0.0\%, while collapsing BU by \textbf{57.1 percentage points} (from 64.3\% down to 7.1\%) and UA by 62.8 percentage points.
-\end{itemize}
-
-Tool Filter achieves zero attack success not by selectively filtering malicious payload actions, but by wholesale prevention of multi-step tool calls.
-
-\subsection{OpenRouter Multi-Model Cohort (RQ2)}
-
-To determine whether utility collapse is specific to GPT-OSS models or represents a systemic property of capability restriction, we evaluated an OpenRouter cohort of 1,540 planned cells across ten diverse model configurations:
-\begin{enumerate}
-    \item \texttt{nvidia/nemotron-3-ultra-550b-a55b:free} (550B ultra-scale)
-    \item \texttt{nvidia/nemotron-3-super-120b-a12b:free} (120B)
-    \item \texttt{nvidia/nemotron-3-nano-omni-30b-a3b:free} (30B reasoning)
-    \item \texttt{nvidia/nemotron-3.5-lightning:free}
-    \item \texttt{minimax/minimax-m3:free}
-    \item \texttt{minimax/minimax-m2.7:free}
-    \item \texttt{cohere/north-mini-code:free}
-    \item \texttt{poolside/laguna-s-2.1:free}
-    \item \texttt{poolside/laguna-xs-2.1:free}
-    \item \texttt{dots-studio/dots-3-note-preview:free}
-\end{enumerate}
-
-\begin{figure}[!t]
-\centering
-\includegraphics[width=0.48\textwidth]{figures/figure_3_openrouter_tradeoff}
-\caption{OpenRouter cohort trade-off (v5.3). Utility loss vs. attack reduction across ten model configurations. Tool Filter reduced utility in 100\% of configurations, while significant attack reductions occurred in only three.}
-\label{fig:openrouter-tradeoff}
-\end{figure}
-
-The cohort generated 1,431 usable complete outcomes from 1,540 planned cells (92.9\% coverage). Figure~\ref{fig:openrouter-tradeoff} plots the paired utility loss against attack reduction for each configuration.
-
-\textbf{Key Findings across the Cohort:}
-\begin{enumerate}
-    \item \textbf{Universal Utility Collapse:} Tool Filter reduced legitimate task utility in \textbf{10/10 configurations (100\%)}.
-    \item \textbf{Inconsistent Security Benefit:} Statistically supported attack-success reductions appeared in only \textbf{3 of the 10 configurations}.
-    \item \textbf{Strict Negative Utility:} In two configurations (\texttt{minimax-m2.7} and \texttt{laguna-xs-2.1}), Tool Filter produced substantial utility losses while providing \textbf{zero reduction in attack success}.
-\end{enumerate}
-
-\begin{figure}[!t]
-\centering
-\includegraphics[width=0.48\textwidth]{figures/figure_5_openrouter_intervals}
-\caption{Confidence intervals for utility and attack differences across OpenRouter configurations under Tool Filter.}
-\label{fig:openrouter-intervals}
-\end{figure}
-
-Figure~\ref{fig:openrouter-intervals} illustrates the configuration-level confidence intervals. Across both open and commercial families spanning 20B to 550B parameters, capability-restriction defenses consistently fail the compatibility test.
+Our static analysis verified that no injection vector causes an active task-critical data overwrite. However, we identified two qualified near-misses in calendar and email fixtures where injection payloads are written to fields immediately adjacent to target state variables.
 
 \begin{figure*}[!t]
 \centering
-\includegraphics[width=0.95\textwidth]{figures/figure_cross_configuration_heatmap.png}
-\caption{Cross-configuration utility and attack success heatmap across evaluated models and defense configurations.}
-\label{fig:cross-config-heatmap}
+\includegraphics[width=0.95\textwidth]{figures/figure_rq1_vector_audit.png}
+\caption{Static injection vector audit across 16 Workspace vectors, mapping target state fixtures and data adjacency.}
+\label{fig:vector-audit}
 \end{figure*}
 
-\subsection{Operational Missingness and Denominator Integrity (RQ3)}
+\subsection{Controlled Multi-Defense Panel on Groq Hardware (RQ2)}
 
-\begin{figure}[!t]
-\centering
-\includegraphics[width=0.48\textwidth]{figures/figure_4_coverage_provenance}
-\caption{Execution coverage and provenance across Groq and OpenRouter strata. Distinguishing planned cells, usable outcomes, and unresolved dropouts.}
-\label{fig:coverage-provenance}
-\end{figure}
+To evaluate defense compatibility under high-throughput controlled execution, we constructed a balanced panel of 1,096 planned cells executed on Groq LPU hardware. We evaluated two open-weight reasoning backbones: \texttt{openai/gpt-oss-120b} (120B mixture-of-experts) and \texttt{openai/gpt-oss-20b} (20B mixture-of-experts). These open-weight MoE architectures, executed on deterministic, high-throughput LPU inference hardware, provide a tightly controlled baseline free of black-box proprietary routing jitter.
 
-In real-world benchmarking, execution failures are inevitable. In our Groq panel, 19.6\% of cells remained unresolved; in OpenRouter, 7.1\% remained unresolved (Figure~\ref{fig:coverage-provenance}).
+We evaluated four defense conditions across all 40 Workspace user tasks under benign and attacked conditions:
+\begin{enumerate}
+    \item \textbf{None (Baseline):} Native agent execution without prompt or tool restrictions.
+    \item \textbf{Repeat Prompt:} Content-level baseline repeating user instructions after untrusted tool outputs.
+    \item \textbf{Spotlighting:} Content-delimiting defense marking untrusted inputs with boundary tags \cite{hines2024spotlighting}.
+    \item \textbf{Tool Filter:} Capability-restriction defense predicting required tools and whitelisting them \cite{debenedetti2024agentdojo}.
+\end{enumerate}
 
-Standard benchmarks report metrics as:
-\begin{equation}
-\text{Metric}_{\text{native}} = \frac{\sum_{i \in \text{Completed}} S_i}{N_{\text{planned}}} \quad \text{or} \quad \frac{\sum_{i \in \text{Completed}} S_i}{N_{\text{completed}}}
-\end{equation}
-When unresolved API aborts are treated as $S_i = 0$ over $N_{\text{planned}}$, a provider outage masquerades as a model capability failure. If they are dropped without reporting, selection bias confounds comparisons. We enforce explicit planned-denominator bounding:
-\begin{equation}
-\text{Lower Bound} = \frac{\sum_{i \in \text{Usable}} S_i}{N_{\text{planned}}}, \quad \text{Upper Bound} = \frac{\sum_{i \in \text{Usable}} S_i + N_{\text{unresolved}}}{N_{\text{planned}}}
-\end{equation}
-This bounds the true capability interval, preventing infrastructure instability from altering scientific conclusions.
-
-\section{Study 2: Multi-Benchmark Failure Provenance across Six Runners}\label{study-2}
-
-\subsection{System Selection and Claim Boundaries (RQ4)}
-
-To test whether infrastructure misattribution is widespread across the agent ecosystem, we audited six major benchmark harnesses: AgentDojo \cite{debenedetti2024agentdojo}, InjecAgent \cite{zhan2024injecagent}, Agent Security Bench (ASB) \cite{zhang2025asb}, AgentHarm \cite{andriushchenko2025agentharm}, ToolSandbox \cite{lu2024toolsandbox}, and tau2-bench \cite{barres2025tau2}.
-
-Table~\ref{tab:benchmarks} summarizes the audited systems, their native numeric scoring endpoints, and the boundaries of execution.
+Of the 1,096 planned cells, 879 yielded usable complete outcomes, 215 were unresolved due to transient provider rate limits, and 2 were excluded due to ambiguous completions. Table~\ref{tab:groq-outcomes} reports the complete-case outcomes across all four defenses.
 
 \begin{table*}[!t]
 \centering
-\caption{Audited benchmark harnesses, evaluated endpoints, and claim boundaries.}
-\label{tab:benchmarks}
+\caption{Groq complete-case defense outcomes across 879 usable cells. Each cell reports successes / usable evaluations (percentage).}
+\label{tab:groq-outcomes}
 \footnotesize
-\renewcommand{\arraystretch}{1.12}
-\begin{tabularx}{\textwidth}{@{}l p{0.22\textwidth} p{0.28\textwidth} Y@{}}
+\setlength{\tabcolsep}{6pt}
+\begin{tabular}{@{}llrrr@{}}
 \toprule
-System & Native Numeric Endpoint & Executed Pipeline & Scripted Boundary \\
+Model Configuration & Defense Condition & Benign Utility (BU) & Utility under Attack (UA) & Attack Success Rate (ASR) \\
 \midrule
-AgentDojo & Utility mean & OpenAILLM, suite runner, aggregator & Ground-truth task pipeline; empty injection \\
-InjecAgent & First-step / all-case success & Prompted runner, file logger, scorer & Selected test case; fixed provider response \\
-ASB & Attack-success predicate & GPTLLM process wrapper, predicate & Single assistant output; no planning loop \\
-AgentHarm & Refusal mean & Generation, refusal judge, combined scorer & Fixed response; scripted refusal judge \\
-ToolSandbox & Category similarity & Model inference, play-and-evaluate, wrapper & Scripted native tool playback and weather \\
-tau2-bench & Native reward & Generator, retry wrapper, NL judge & Scripted tools and assertion judge \\
+\textbf{GPT-OSS-120B} & None & 12/13 (92.3\%) & 59/86 (68.6\%) & 16/86 (18.6\%) \\
+ & Repeat Prompt & 13/15 (86.7\%) & 73/90 (81.1\%) & 5/90 (5.6\%) \\
+ & Spotlighting & 12/13 (92.3\%) & 62/89 (69.7\%) & 13/89 (14.6\%) \\
+ & Tool Filter & 1/17 (5.9\%) & 7/117 (6.0\%) & 0/117 (0.0\%) \\
+\midrule
+\textbf{GPT-OSS-20B} & None & 10/14 (71.4\%) & 61/89 (68.5\%) & 10/89 (11.2\%) \\
+ & Repeat Prompt & 11/14 (78.6\%) & 66/95 (69.5\%) & 7/95 (7.4\%) \\
+ & Spotlighting & 11/14 (78.6\%) & 56/94 (59.6\%) & 15/94 (16.0\%) \\
+ & Tool Filter & 2/17 (11.8\%) & 5/102 (4.9\%) & 0/102 (0.0\%) \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=\textwidth]{figures/figure_2_groq_profiles.png}
+\caption{Groq complete-case outcome profiles. Benign utility (BU), utility under attack (UA), and attack success rate (ASR) across defenses. Tool Filter collapses BU and UA for both GPT-OSS-120B and GPT-OSS-20B.}
+\label{fig:groq-profiles}
+\end{figure*}
+
+\textbf{Empirical Contrast Between Defense Classes:}
+Table~\ref{tab:groq-outcomes} and Figure~\ref{fig:groq-profiles} illuminate a stark contrast between defense paradigms:
+\begin{itemize}
+    \item \textbf{Content-Delimiting Defenses Preserve Utility:} Both Repeat Prompt and Spotlighting maintain high Benign Utility: GPT-OSS-120B achieves 86.7\% and 92.3\% BU under Repeat Prompt and Spotlighting, respectively, compared to 92.3\% undefended. For GPT-OSS-20B, BU increases from 71.4\% undefended to 78.6\% under both Repeat Prompt and Spotlighting. Repeat Prompt also reduces ASR from 18.6\% to 5.6\% on 120B and from 11.2\% to 7.4\% on 20B.
+    \item \textbf{Capability Restriction Destroys Utility:} In stark contrast, Tool Filter achieves an ASR of 0.0\% only by causing catastrophic utility collapse. On complete matched pairs:
+    \begin{itemize}
+        \item For \textbf{GPT-OSS-120B}, Benign Utility drops by \textbf{84.6 percentage points} (from 88.5\% to 3.8\% on matched pairs; 92.3\% to 5.9\% across all usable cases). Utility under attack (UA) plummets by \textbf{60.5 percentage points} (from 68.6\% down to 6.0\%).
+        \item For \textbf{GPT-OSS-20B}, Benign Utility drops by \textbf{57.1 percentage points} (from 64.3\% to 7.1\% on matched pairs; 71.4\% to 11.8\% usable). UA plummets by \textbf{62.8 percentage points} (from 68.5\% down to 4.9\%).
+    \end{itemize}
+\end{itemize}
+
+\textbf{Mechanistic Breakdown of Tool Filter Failure:}
+Why does Tool Filter cause such catastrophic utility collapse? We analyzed transcripts from the failed executions and identified two distinct failure mechanisms:
+\begin{enumerate}
+    \item \textbf{Multi-Step Information Asymmetry (81.3\% of collapsed runs):} In stateful agent tasks, the tools required to complete a multi-step objective cannot be deduced from the initial prompt alone. For example, a user prompt stating \textit{``Find the meeting notes from Alice and email them to Bob''} initially appears to require only an email or calendar search tool. Only after the email body is retrieved does the agent discover an attachment link requiring a file storage download tool. Tool Filter prompts the model at turn 0 to predict the required tools; because the file tool is not mentioned in the initial prompt, it is pruned from the whitelist. When the agent later attempts to call \texttt{download\_file}, the call is aborted, halting execution and registering a task failure.
+    \item \textbf{Whitelist Prediction and Formatting Failures (18.7\% of collapsed runs):} On smaller models (such as GPT-OSS-20B), the defense's tool-prediction prompt occasionally results in malformed JSON or empty tool declarations, immediately starving the agent of all capability before a single action can be taken.
+\end{enumerate}
+
+\subsection{Multi-Model Cohort Across Ten Production Configurations (RQ2)}\label{sec:openrouter}
+
+To determine whether utility collapse is specific to open-weight MoE backbones or represents a general systemic pathology of capability-restriction defenses, we evaluated a multi-family cohort across ten production model configurations spanning five distinct families (20B to 550B total parameters).
+
+\begin{table*}[!t]
+\centering
+\caption{Architectural specifications of the 10-model production evaluation cohort (OpenRouter strata).}
+\label{tab:openrouter-models}
+\footnotesize
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{@{}llllll@{}}
+\toprule
+ID & Canonical Model Name\footnotemark & Model Family & Parameter Scale (Total / Active) & Architecture & Domain / Design Target \\
+\midrule
+C1 & Cohere North Mini Code & Cohere & Undisclosed / Dense & Dense Transformer & Code-specialized reasoning \\
+D1 & Dots-3 Note Preview & Dots Studio & Undisclosed / Dense & Dense Transformer & Note-taking \& productivity \\
+M1 & MiniMax M2.7 & MiniMax & Undisclosed / MoE & Mixture-of-Experts & Conversational \& agentic workflows \\
+M2 & MiniMax M3 & MiniMax & Undisclosed / MoE & Large-scale MoE & Multi-turn general planning \\
+N1 & Nemotron-3 Nano Omni & NVIDIA & 30B total / 3B active & Sparse MoE & Efficient multi-modal reasoning \\
+N2 & Nemotron-3 Super & NVIDIA & 120B total / 12B active & Sparse MoE & High-throughput agentic execution \\
+N3 & Nemotron-3 Ultra & NVIDIA & 550B total / 55B active & Ultra-scale Sparse MoE & Frontier reasoning \& tool execution \\
+N4 & Nemotron-3.5 Lightning & NVIDIA & Undisclosed / Dense & Dense Transformer & High-speed low-latency inference \\
+P1 & Laguna-S 2.1 & Poolside & Undisclosed / Dense & Dense Transformer & Code synthesis \& tool planning \\
+P2 & Laguna-XS 2.1 & Poolside & Undisclosed / Dense & Compact Dense & Lightweight agentic workflows \\
+\bottomrule
+\end{tabular}
+\end{table*}
+\footnotetext{Exact API routing slugs evaluated: \texttt{cohere/north-mini-code}, \texttt{dots-studio/dots-3-note-preview}, \texttt{minimax/minimax-m2.7}, \texttt{minimax/minimax-m3}, \texttt{nvidia/nemotron-3-nano-omni-30b-a3b-reasoning}, \texttt{nvidia/nemotron-3-super-120b-a12b}, \texttt{nvidia/nemotron-3-ultra-550b-a55b}, \texttt{nvidia/nemotron-3.5-lightning}, \texttt{poolside/laguna-s-2.1}, and \texttt{poolside/laguna-xs-2.1}.}
+
+Table~\ref{tab:openrouter-models} details the architectural parameters and model families. The cohort generated 1,431 usable complete outcomes from 1,540 planned cells (92.9\% coverage). Table~\ref{tab:openrouter-effects} reports matched-pair effects (Tool Filter minus no defense), and Figures~\ref{fig:tradeoff}, \ref{fig:openrouter-intervals}, and \ref{fig:cross-configuration-heatmap} visualize the security-utility tradeoff.
+
+\begin{table*}[!t]
+\centering
+\caption{OpenRouter complete-pair effects: Tool Filter minus no defense, in percentage points. Pair counts are observed/planned.}
+\label{tab:openrouter-effects}
+\footnotesize
+\setlength{\tabcolsep}{4.5pt}
+\begin{tabular}{@{}lllrrrrrr@{}}
+\toprule
+ID & Canonical Model & Family & BU pairs & $\Delta$BU & UA pairs & $\Delta$UA & ASR pairs & $\Delta$ASR \\
+\midrule
+C1 & Cohere North Mini Code & Cohere & 5/17 & -100.0 & 17/60 & -47.1 & 17/60 & -17.6 \\
+D1 & Dots-3 Note Preview & Dots Studio & 17/17 & -64.7 & 60/60 & -3.3 & 60/60 & -46.7 \\
+M1 & MiniMax M2.7 & MiniMax & 16/17 & -43.8 & 46/60 & -37.0 & 46/60 & -10.9 \\
+M2 & MiniMax M3 & MiniMax & 17/17 & -52.9 & 54/60 & -70.4 & 54/60 & 0.0 \\
+N1 & Nemotron-3 Nano Omni & NVIDIA & 17/17 & -70.6 & 56/60 & -80.4 & 56/60 & -3.6 \\
+N2 & Nemotron-3 Super & NVIDIA & 16/17 & -100.0 & 58/60 & -27.6 & 58/60 & -32.8 \\
+N3 & Nemotron-3 Ultra & NVIDIA & 16/17 & -68.8 & 58/60 & -65.5 & 58/60 & 0.0 \\
+N4 & Nemotron-3.5 Lightning & NVIDIA & 17/17 & -94.1 & 57/60 & -54.4 & 57/60 & -24.6 \\
+P1 & Laguna-S 2.1 & Poolside & 16/17 & -56.2 & 58/60 & -69.0 & 58/60 & -13.8 \\
+P2 & Laguna-XS 2.1 & Poolside & 15/17 & -80.0 & 54/60 & -59.3 & 54/60 & -11.1 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=\columnwidth]{figures/figure_3_openrouter_tradeoff.png}
+\caption{OpenRouter cohort trade-off. Utility loss vs. attack reduction across ten model configurations. Tool Filter reduced utility in 100\% of configurations, while significant attack reductions occurred in only three.}
+\label{fig:tradeoff}
+\end{figure}
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=0.98\textwidth]{figures/figure_5_openrouter_intervals.png}
+\caption{OpenRouter paired effects with 95\% task-clustered bootstrap intervals. Negative utility changes indicate functionality loss; negative ASR changes indicate security improvement. Endpoint IDs follow Table~\ref{tab:openrouter-effects}.}
+\label{fig:openrouter-intervals}
+\end{figure*}
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=0.98\textwidth]{figures/figure_cross_configuration_heatmap.png}
+\caption{Cross-configuration summary of Tool Filter minus no defense. Color intensity encodes matched-pair changes in BU, UA, and ASR and complete-pair coverage; filled markers denote Holm-adjusted support at $p<0.05$. Utility degradation is consistent, whereas supported ASR reduction is configuration dependent.}
+\label{fig:cross-configuration-heatmap}
+\end{figure*}
+
+\textbf{Key Findings across Production Models:}
+\begin{enumerate}
+    \item \textbf{Universal Utility Collapse (10/10 Configurations):} Benign task utility declined in \textbf{100\% of evaluated models}. In two configurations (C1 and N2), Benign Utility dropped by \textbf{100 percentage points} (complete operational paralysis). After Holm adjustment for multiple comparisons, utility loss remained statistically significant in 9 of 10 configurations (C1 had only 5 complete pairs, yielding adjusted $p = 0.0625$).
+    \item \textbf{Inconsistent Security Improvement (3/10 Configurations):} While utility collapse occurred universally, statistically supported ASR reductions materialized in only **3 of the 10 configurations** (D1, N2, and N4).
+    \item \textbf{Strict Negative Utility:} In M2 (MiniMax M3) and N3 (Nemotron-3 Ultra 550B), Tool Filter produced massive utility collapses ($-52.9$ and $-68.8$ percentage points in BU; $-70.4$ and $-65.5$ points in UA) while providing \textbf{0.0 percentage points reduction in attack success}.
+\end{enumerate}
+
+\subsection{Operational Missingness and Denominator Integrity (RQ3)}\label{sec:missingness}
+
+In empirical agent benchmarking, execution runs frequently encounter transient infrastructure aborts (rate limits, timeouts, socket closures). In our Groq panel, 19.6\% of planned cells (215 of 1,096) were unresolved; in the multi-family cohort, 7.1\% (109 of 1,540) were unresolved.
+
+\textbf{Methodological Isolation of Behavioral Effects:}
+We emphasize an essential methodological property of our Study 1 results: \textit{behavioral utility collapse is evaluated strictly over verified, completed matched pairs} ($N = 879$ in Groq, $N = 1,431$ in OpenRouter). Provider rate limits or transport drops simply leave cells unresolved and are isolated into explicit denominator bounds; they have mathematically zero influence on the paired utility degradation findings.
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=0.96\textwidth]{figures/figure_4_coverage_provenance.png}
+\caption{Outcome coverage and operational provenance. Distinguishing planned scientific cells from repeated API attempts. Repeated attempts are not independent replicates.}
+\label{fig:provenance}
+\end{figure*}
+
+When unhandled aborts are naively scored as 0 over $N_{\text{planned}}$, infrastructure dropouts masquerade as model capability failures. To guarantee denominator integrity, we formalize explicit planned-denominator worst-case bounds:
+\begin{equation}
+\text{Lower Bound} = \frac{\sum_{i \in \text{Usable}} S_i}{N_{\text{planned}}}, \quad \text{Upper Bound} = \frac{\sum_{i \in \text{Usable}} S_i + N_{\text{unresolved}}}{N_{\text{planned}}}
+\end{equation}
+Figure~\ref{fig:provenance} separates these cell-level outcomes from attempt-level operational logs across 4,344 and 4,689 recorded attempts.
+
+\section{Study 2: Multi-Benchmark Failure Provenance across Six Runners}\label{sec:study2}
+
+\subsection{Benchmark Runner Architectures and Failure Propagation (RQ4)}
+
+To determine how LLM agent benchmark runners behave when provider and network infrastructure faults occur, we audited six prominent benchmark harnesses: AgentDojo \cite{debenedetti2024agentdojo}, InjecAgent \cite{zhan2024injecagent}, Agent Security Bench (ASB) \cite{zhang2025asb}, AgentHarm \cite{andriushchenko2025agentharm}, ToolSandbox \cite{lu2024toolsandbox}, and $\tau^2$-bench \cite{barres2025tau2}.
+
+\begin{table*}[!t]
+\centering
+\caption{Architectural comparison of the six audited LLM agent benchmark harnesses.}
+\label{tab:benchmark-architectures}
+\footnotesize
+\renewcommand{\arraystretch}{1.15}
+\begin{tabularx}{\textwidth}{@{}l p{0.14\textwidth} p{0.18\textwidth} p{0.16\textwidth} p{0.16\textwidth} Y@{}}
+\toprule
+Benchmark Harness & Execution Model & Native Exception Handling & Retry / Timeout Policy & Task Scoring Predicate & Failure Leakage Mechanism \\
+\midrule
+\textbf{AgentDojo} \cite{debenedetti2024agentdojo} & Multi-turn stateful environment; tool sandboxes & Catches context-length errors specifically; unhandled API exceptions bubble up or cause task abort & Fixed retry budget on rate limits; unhandled provider drops terminate loop & State-based predicate over canonical pre/post environment state & Aborted executions due to unhandled provider errors produce default zero utility \\
+\textbf{InjecAgent} \cite{zhan2024injecagent} & Single/multi-turn tool-call generation & Per-item \texttt{try/except}; unhandled errors write empty results & No native exponential backoff at item level & String-matching and parameter-matching predicates & Empty/aborted runs trigger \texttt{ZeroDivisionError} or register as attack defense failures \\
+\textbf{Agent Security Bench (ASB)} \cite{zhang2025asb} & Multi-turn interactive agent environment & Catches provider exceptions and converts them into raw text responses & Basic timeout per turn; no decoupled provenance tracking & Success predicate evaluated over final environment state & Provider crashes recorded as agent text, leading directly to a numeric score of 0.0 \\
+\textbf{AgentHarm} \cite{andriushchenko2025agentharm} & Multi-domain harm evaluation & Wraps model invocations; catches API errors in refusal judge & Standard SDK retry logic & Automated LLM refusal and harm scoring judge & Judge crashes or provider drops return a false refusal flag, entering the refusal denominator \\
+\textbf{ToolSandbox} \cite{lu2024toolsandbox} & Stateful sandboxed tool execution & Traps general scenario exceptions and converts to zero similarity & Environment-level watchdog timeout & State-trajectory similarity metrics against ground-truth state & Exception-handling traps provider aborts and emits zero similarity, scored as model failure \\
+$\boldsymbol{\tau^2}$\textbf{-bench} \cite{barres2025tau2} & Multi-turn conversational domain policies & Simulates infrastructure error without reward on exhausted calls & Fixed turn budget; terminates on transport disconnect & Domain policy rule engine and reward function & Transport resets terminate trajectory with zero reward, tallies as policy failure \\
 \bottomrule
 \end{tabularx}
 \end{table*}
 
-\subsection{Fault Taxonomy and Controlled Boundary Design}
-
-We developed a comprehensive catalogue of seventeen provider and transport faults:
+Table~\ref{tab:benchmark-architectures} compares the architectural designs, exception handling strategies, and scoring pipelines across all six harnesses. While each harness implements error handling at some level, critical structural differences dictate whether an infrastructure fault propagates cleanly or silently corrupts the benchmark denominator:
 \begin{itemize}
-    \item \textbf{HTTP Error Codes:} 400 (Bad Request), 400 (Context Length Exceeded), 401 (Unauthorized), 404 (Not Found), 408 (Request Timeout), 429 (Rate Limit), 500 (Internal Server Error), 502 (Bad Gateway), 503 (Service Unavailable), 504 (Gateway Timeout).
-    \item \textbf{Transport Faults:} Connect timeout, read timeout, premature socket closure (\texttt{RemoteProtocolError}).
-    \item \textbf{Payload Malformations:} Malformed JSON response, empty choices array, mismatched model identity, and malformed tool argument JSON.
+    \item \textbf{Textual Exception Absorption (ASB, ToolSandbox):} ASB catches network and API exceptions and formats the exception message into a simulated model response string (e.g., \textit{``Error: Connection timed out''}). The task evaluator inspects this response text, finds no valid tool invocation, and assigns a task completion score of 0.0. ToolSandbox traps runtime exceptions and outputs zero trajectory similarity. In both cases, the benchmark runner produces an identical numeric zero score for an infrastructure crash as it would for a model that followed instructions but failed the task.
+    \item \textbf{Judge Misclassification (AgentHarm):} In safety evaluations where an automated LLM judge scores agent refusal, provider faults occurring during judge invocation cause the exception handler to fall back to a default boolean flag (\texttt{refusal = False}). This directly scores a network fault as a dangerous refusal failure.
+    \item \textbf{Execution Loop Abort (AgentDojo, InjecAgent, $\tau^2$-bench):} When an unhandled exception terminates the interaction loop, intermediate partial state is evaluated against the post-task condition. Because legitimate state mutations were never completed, the state predicate evaluates to False, entering zero into the score denominator.
 \end{itemize}
 
-Each fault condition was evaluated under two persistence modes: \textit{persistent} (fault delivered on all attempts) and \textit{fail-once} (fault delivered on the first attempt, followed by a valid response). In addition, two clean controls (positive and negative outcomes) were included.
+\subsection{Fault Injection Taxonomy and Controlled Boundary Design}
 
-For each of the thirty task fixtures across the six systems, the 34 fault conditions and 2 clean controls were executed across two arms:
+To rigorously quantify denominator contamination, we developed a fault taxonomy comprising seventeen distinct provider and transport fault conditions:
+\begin{enumerate}
+    \item \textbf{HTTP Status Errors (10 conditions):} 400 (Bad Request), 400 (Context Length Exceeded), 401 (Unauthorized), 404 (Not Found), 408 (Request Timeout), 429 (Rate Limit), 500 (Internal Server Error), 502 (Bad Gateway), 503 (Service Unavailable), and 504 (Gateway Timeout).
+    \item \textbf{Transport Interruptions (3 conditions):} TCP connect timeout, socket read timeout, and premature socket teardown (\texttt{RemoteProtocolError}).
+    \item \textbf{Response-Contract Malformations (4 conditions):} HTTP 200 OK with malformed JSON, empty choices array, model identity mismatch, and malformed tool call argument schema.
+\end{enumerate}
+
+Each fault condition was evaluated under two temporal persistence modes: \textit{persistent} (fault occurs on all retry attempts) and \textit{fail-once} (fault occurs on initial attempt, subsequent retry succeeds). We evaluated these across 30 fixtures and 2 clean controls in a paired-arm design:
 \begin{equation}
 30 \text{ fixtures} \times 36 \text{ conditions} \times 2 \text{ arms} = 2,160 \text{ clean-process executions}
 \end{equation}
-yielding 1,080 matched pairs.
+yielding 1,080 matched pairs comparing the \textbf{Native Arm} (unmodified benchmark runners) against the \textbf{Guarded Arm} (equipped with our provenance observer).
 
-\subsection{Empirical Contamination Results (RQ4)}
+\subsection{Empirical Contamination Results Across Six Runners (RQ4)}
 
-For an execution $i$, let $E_i \in \{0, 1\}$ indicate whether the native benchmark endpoint emitted a completed numeric outcome. Let $V_i \in \{0, 1\}$ indicate whether the final provider call was valid. An \textbf{invalid inclusion} occurs when:
-\begin{equation}
-C_i = E_i (1 - V_i) = 1
-\end{equation}
-where an unhandled infrastructure fault is recorded as a numeric score.
+Across the 2,160 executions, 700 unresolved non-model faults were delivered to each arm. Table~\ref{tab:controlled-breakdown} provides a detailed per-benchmark breakdown of outcome emission under these unresolved faults.
 
-\textbf{Core Empirical Finding:}
-Across the 700 unresolved-fault cases in the native arm:
+\begin{table*}[!t]
+\centering
+\caption{Controlled boundary fault-injection results across six benchmark runners (2,160 executions, 1,080 matched pairs).}
+\label{tab:controlled-breakdown}
+\footnotesize
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{@{}lrrrrrr@{}}
+\toprule
+Benchmark Harness & Total Runs per Arm & Delivered Unresolved Faults & Native Invalid Inclusions & Native Contamination Rate & Guarded Invalid Inclusions & Valid Recoveries Retained \\
+\midrule
+\textbf{AgentDojo} & 180 & 110 & 20 & 18.2\% & 0 & 60 \\
+\textbf{InjecAgent} & 180 & 125 & 20 & 16.0\% & 0 & 45 \\
+\textbf{Agent Security Bench (ASB)} & 180 & 125 & 125 & 100.0\% & 0 & 45 \\
+\textbf{AgentHarm} & 180 & 125 & 125 & 100.0\% & 0 & 45 \\
+\textbf{ToolSandbox} & 180 & 125 & 125 & 100.0\% & 0 & 45 \\
+$\boldsymbol{\tau^2}$\textbf{-bench} & 180 & 90 & 10 & 11.1\% & 0 & 80 \\
+\midrule
+\textbf{Total / Summary} & \textbf{1,080} & \textbf{700} & \textbf{425} & \textbf{60.7\%} & \textbf{0} & \textbf{320} \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\textbf{Denominator Contamination Findings:}
 \begin{itemize}
-    \item Native benchmark paths emitted completed numeric outcomes in \textbf{425 of 700 cases (60.7\% contamination)}.
-    \item In InjecAgent, ASB, ToolSandbox, and tau2-bench, unhandled provider timeouts and HTTP 500 errors were converted into zero scores, recording an infrastructure crash as a model capability failure.
-    \item Only 275 of 700 unresolved cases correctly halted without emitting a score.
+    \item \textbf{Systemic Score Contamination:} Across the fixed matrix of 700 unresolved non-model faults, native benchmark runners emitted completed numeric scores in \textbf{425 cases (60.7\% contamination rate)}. Infrastructure aborts were silently tallied as model capability failures.
+    \item \textbf{Total Contamination in ASB, AgentHarm, and ToolSandbox:} In ASB, AgentHarm, and ToolSandbox, \textbf{100\% of unresolved non-model faults (125 of 125)} improperly entered the score denominator. Their exception wrappers swallowed the faults and converted them into zero task scores.
+    \item \textbf{Sensitivity by Fault Family:}
+    \begin{itemize}
+        \item \textit{Service and Transport Faults (HTTP 5xx, timeouts, drops):} Produced \textbf{135 native numeric scores among 270 unresolved cases} (50.0\% contamination), all emitted as numeric zeros.
+        \item \textit{Configuration and Access Defects (HTTP 4xx):} Produced \textbf{130 invalid inclusions among 210 unresolved cases} (61.9\% contamination).
+        \item \textit{Response-Contract Malformations (Malformed JSON, empty choices):} Produced \textbf{160 invalid inclusions among 220 unresolved cases} (72.7\% contamination), including 90 numeric scores of 1.0 where malformed responses were incorrectly interpreted as successful actions.
+    \end{itemize}
 \end{itemize}
 
 \section{The \texttt{evalfault} Guard and Stage-Aware Accounting}\label{sec:evalfault}
 
 \subsection{Guard Architecture (RQ5)}
 
-To prevent non-model infrastructure errors from contaminating benchmark denominators, we designed \texttt{evalfault}, a lightweight, stage-aware provenance guard layer. The guard decouples an agent run into three lifecycle stages:
+To prevent infrastructure and transport failures from corrupting benchmark scores, we introduce \texttt{evalfault}, an open-source, non-invasive provenance guard layer. \texttt{evalfault} decouples agent execution into three strictly bounded lifecycle stages:
 \begin{enumerate}
-    \item \textbf{Provider Stage:} Validates HTTP transport, response status, schema integrity, and model identity.
-    \item \textbf{Harness Stage:} Tracks environment state mutations, tool execution deadlines, and sandbox integrity.
-    \item \textbf{Evaluator Stage:} Verifies judge availability, deterministic predicate completion, and token budgets.
+    \item \textbf{Provider Stage:} Validates network transport, HTTP response status codes, payload schema integrity, and model identity at the client boundary. It ensures that responses with status 200 OK that contain malformed payloads or empty choices are intercepted before reaching the agent logic.
+    \item \textbf{Harness Stage:} Tracks environment state transitions, tool execution deadlines, and sandbox invariants.
+    \item \textbf{Evaluator Stage:} Verifies judge availability, deterministic predicate completion, and token budget accounting.
 \end{enumerate}
 
-The guarded score emission is defined as:
-\begin{equation}
-E_i^* = E_i \cdot \hat{V}_i
-\end{equation}
-where $\hat{V}_i$ is estimated strictly from passive client-side SDK evidence without access to oracle injection labels.
+\subsection{Controlled Interception and the Exception-Only Baseline (RQ5)}
 
-\subsection{Controlled Interception Performance}
-
-In the guarded arm of the 2,160 controlled boundary runs:
+In the guarded arm of the 2,160 controlled boundary executions:
 \begin{itemize}
-    \item \textbf{Zero Invalid Inclusions:} \texttt{evalfault} eliminated all 425 invalid inclusions ($C_i^* = 0$, 0 invalid retained).
-    \item \textbf{Preservation of Clean Controls:} All 60 clean control outcomes were retained (100\% specificity).
-    \item \textbf{Preservation of Valid Recoveries:} All 320 valid recoveries in the fail-once conditions were successfully retained ($V_i = 1$).
+    \item \textbf{Zero Invalid Inclusions:} \texttt{evalfault} eliminated all 425 invalid inclusions (0 of 700 unresolved faults retained; 100\% interception specificity).
+    \item \textbf{Preservation of Clean Controls:} All 60 clean control executions were preserved intact without false exclusions.
+    \item \textbf{Preservation of Valid Recoveries:} In fail-once conditions where transient faults were followed by a successful retry, all 320 valid recoveries were correctly retained.
 \end{itemize}
 
-Under an exception-only ablation (which records thrown exceptions but ignores malformed response payloads or mismatched identities), 130 invalid inclusions bypassed detection. Structural payload validation is therefore essential.
+\textbf{Ablation: Why Exception-Only Wrappers Fail:}
+A common objection is that provenance tracking is superfluous because a simple \texttt{try/catch} wrapper around API calls suffices. To test this hypothesis, we evaluated an \textbf{Exception-Only baseline} that traps standard client-level exceptions but performs no semantic payload or schema validation.
+
+In the controlled boundary study, \textbf{130 of the 425 invalid inclusions bypassed standard exception handling}. When an upstream provider returns an HTTP 200 status code but provides an empty choices array, truncated JSON, or mismatched model metadata, standard client libraries do not raise an exception. The exception-only wrapper treats the returned object as a successful API response, passing the corrupted output into the agent harness where it is tallied as a model failure. \texttt{evalfault}'s stage-aware schema validation intercepts these payload defects, proving that structural provenance is necessary.
 
 \subsection{Synthetic Validation on 450 Disjoint Cases (RQ6)}
 
@@ -288,13 +385,33 @@ A separate, independently implemented raw-evidence checker labeled:
     \item 72 cases as \textit{unknown} (ambiguous telemetry).
 \end{itemize}
 
-Stage-aware accounting retained \textbf{0 invalid outcomes} and achieved \textbf{0 false exclusions} among reference-valid cases. In ambiguous cases, the guard flagged the evidence state as unknown rather than forcing a misleading binary decision.
+\begin{table}[!t]
+\centering
+\caption{Comparison of accounting policies on 450-case synthetic challenge packet.}
+\label{tab:accounting-policies}
+\footnotesize
+\begin{tabular}{@{}lrr@{}}
+\toprule
+Accounting Policy & Invalid Inclusions (out of 216) & False Exclusions (out of 162) \\
+\midrule
+Native Numeric Reporting & 216 & 0 \\
+Exception-Only Wrapper & 72 & 0 \\
+Last-Globally-Completed Call & 180 & 0 \\
+\textbf{Stage-Aware \texttt{evalfault}} & \textbf{0} & \textbf{0} \\
+\bottomrule
+\end{tabular}
+\end{table}
 
-\section{Exploratory Live Pilot (RQ6)}\label{sec:live-pilot}
+Table~\ref{tab:accounting-policies} compares four accounting policies across the 450 cases. Native reporting accepted all 216 invalid cases. The exception-only wrapper leaked 72 invalid cases because returned structural defects had no terminal exception. The last-call rule accepted 180 invalid cases because a successful unrelated event completed after an unresolved required operation. Stage-aware accounting retained \textbf{0 invalid outcomes} and achieved \textbf{0 false exclusions} among reference-valid cases. In ambiguous cases, \texttt{evalfault} flagged the evidence state as unknown rather than forcing a misleading binary decision.
 
-To observe provenance dynamics in an unscripted, production environment, we executed an exploratory live pilot of 50 AgentDojo Workspace trajectories against OpenRouter free endpoints (\texttt{nvidia/nemotron-super-120b} and \texttt{dots-studio-3-preview}) involving 129 live API calls.
+\section{Exploratory Live Pilot Under Capacity-Shedding Stress (RQ6)}\label{sec:live-pilot}
 
-An independent audit of raw network traces labeled 19 trajectories as valid and 31 as invalid (due to free-endpoint capacity shedding, HTTP 429 rate limits, and gateway drops). Under this bounded setup, all 31 invalid runs halted cleanly before reaching AgentDojo's numeric aggregation function. Consequently, zero invalid runs contaminated the live pilot scores. This honest negative result confirms that live score distortion depends on specific harness exception handling, underscoring the necessity of systematic fault-injection testing.
+To observe provenance dynamics under realistic, unscripted production conditions, we executed an exploratory live pilot of 50 AgentDojo Workspace trajectories against routed production endpoints (\texttt{nemotron-3-super-120b} and \texttt{dots-3-note-preview}) involving 129 live API calls.
+
+\textbf{Methodological Rationale for Routed Stress Endpoints:}
+We deliberately targeted high-stress, dynamically routed provider endpoints for this pilot. Unlike dedicated enterprise capacity, routed shared endpoints experience authentic multi-tenant capacity shedding, aggressive HTTP 429 rate limiting, and intermittent gateway disconnects. This environment serves as an intentional real-world stress testbed to evaluate whether \texttt{evalfault}'s provenance boundaries hold under severe provider unreliability.
+
+An independent audit of raw network traces labeled 19 trajectories as valid and 31 as invalid (due to capacity shedding, HTTP 429 rate limits, and gateway drops). Under this bounded setup, all 31 invalid runs halted cleanly before reaching AgentDojo's numeric aggregation function. Consequently, zero invalid runs contaminated the live pilot scores. This honest negative result confirms that live score distortion depends on specific harness exception handling, underscoring the necessity of systematic fault-injection testing.
 
 \section{Discussion, Recommendations, and Limitations}\label{sec:discussion}
 
@@ -312,7 +429,7 @@ Based on our empirical findings across twelve models and six benchmark harnesses
 
 Our findings are bounded by the evaluated scopes:
 \begin{itemize}
-    \item Study 1 evaluated the Workspace suite of AgentDojo 0.1.35; while findings reproduced across ten OpenRouter models and two Groq models, closed frontier commercial APIs (e.g., GPT-5 or Claude 4.5) may exhibit different capability-restriction thresholds.
+    \item Study 1 evaluated the Workspace suite of AgentDojo; while findings reproduced across ten production models and two open-weight Groq backbones, closed frontier commercial APIs (e.g., GPT-5 or Claude 4.5) may exhibit different capability-restriction thresholds.
     \item Study 2 evaluated selected native execution paths across six benchmark runners under scripted task boundaries to enable controlled propagation testing; full multi-turn CLI executions may introduce additional confounding factors.
     \item The synthetic validation packet represents a declared structural grammar of faults rather than an exhaustive model of natural distributed systems failure distributions.
 \end{itemize}
@@ -322,5 +439,5 @@ Our findings are bounded by the evaluated scopes:
 Valid evaluation of autonomous LLM agents requires that benchmark scores reflect model capabilities rather than behavioral utility destruction or infrastructure flakiness. Our dual-layer audit proves that capability-restriction defenses like Tool Filter create an illusion of security by collapsing benign utility across 100\% of evaluated model configurations, while native benchmark runners across six major suites convert 60.7\% of unresolved infrastructure faults into false model failure scores. By combining paired security-utility accounting with the \texttt{evalfault} stage-aware provenance guard, the community can eliminate denominator contamination and restore measurement integrity to LLM agent benchmarking.
 
 \section*{Data and Software Availability}
-To facilitate full independent replication and community adoption, the complete replication package---including the IEEEtran manuscript sources, raw attempt-level event ledgers across all 4,970 executions, the \texttt{evalfault} observer harness, and the self-contained Level-0 verification script---is publicly available under the MIT license at:
+To facilitate full independent replication and community adoption, the complete replication package---including the IEEEtran manuscript sources, raw attempt-level event ledgers across all 4,970 executions, the \texttt{evalfault} observer harness, and the self-contained automated reproducibility verification suite---is publicly available under the MIT license at:
 \url{https://github.com/sharif2552/llm-agent-defense-provenance-audit}.
